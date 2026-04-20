@@ -1,0 +1,48 @@
+import Foundation
+
+/// 文字翻譯 Use Case 介面
+/// UI / ViewModel 只依賴這個 protocol，方便測試時注入 Mock。
+protocol TranslateTextUseCase {
+    func execute(_ request: TranslationRequest) async throws -> TranslationResult
+}
+
+/// 真實作：呼叫 MTService 並把結果寫入歷史紀錄。
+struct DefaultTranslateTextUseCase: TranslateTextUseCase {
+    let mtService: MTService
+    let history: HistoryRepository
+
+    func execute(_ request: TranslationRequest) async throws -> TranslationResult {
+        // 1. 前置檢查
+        let trimmed = request.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            throw TranslationError.emptyInput
+        }
+        guard request.pair.isSupported else {
+            throw TranslationError.unsupportedPair
+        }
+
+        // 2. 呼叫翻譯引擎
+        let translated = try await mtService.translate(
+            text: trimmed,
+            pair: request.pair
+        )
+
+        let result = TranslationResult(
+            sourceText: trimmed,
+            translatedText: translated,
+            pair: request.pair,
+            createdAt: Date()
+        )
+
+        // 3. 寫入歷史紀錄（失敗不阻擋主流程，只記 log）
+        do {
+            try await history.save(result)
+        } catch {
+            #if DEBUG
+            print("⚠️ HistoryRepository.save failed: \(error)")
+            #endif
+        }
+
+        return result
+    }
+}
