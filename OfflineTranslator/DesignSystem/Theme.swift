@@ -14,7 +14,7 @@ enum Theme {
         /// 淺粉紫漸層的終點（偏紫）
         static let gradientEnd   = Color(red: 0.80, green: 0.78, blue: 1.00)
 
-        /// 主要強調色（按鈵、選取狀態）
+        /// 主要強調色（按鈕、選取狀態）
         static let accent        = Color(red: 0.73, green: 0.69, blue: 0.88)
         /// 內文文字色
         static let textPrimary   = Color(red: 0.15, green: 0.13, blue: 0.22)
