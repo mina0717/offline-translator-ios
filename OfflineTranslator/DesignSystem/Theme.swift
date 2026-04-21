@@ -1,27 +1,70 @@
 import SwiftUI
+import UIKit
 
 /// 全 App 共用的色票、字型、圓角、間距 token。
 /// 所有 UI 都應該透過 `Theme` 取值，禁止在 View 內硬寫色碼。
+///
+/// v1.1：色彩從靜態 Color 改為「亯/深雙套」動態 Color，
+///       透過 `Color(uiColor: UIColor { traits in ... })` 在系統切換時自動跟著換。
 enum Theme {
 
     // MARK: - Colors
 
     enum Colors {
-        /// 淺粉紫漸層的起點（偏粉）
-        static let gradientStart = Color(red: 1.00, green: 0.86, blue: 0.94)
-        /// 淺粉紫漸層的中點（粉紫）
-        static let gradientMid   = Color(red: 0.92, green: 0.82, blue: 0.97)
-        /// 淺粉紫漸層的終點（偏紫）
-        static let gradientEnd   = Color(red: 0.80, green: 0.78, blue: 1.00)
+        /// 淺粉紫漸層的起點
+        /// - 亮色：粉色（#FFDAF0 感）
+        /// - 深色：暗紫色（深夜氣氛、避免螢幕過亮）
+        static let gradientStart = Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor(red: 0.13, green: 0.10, blue: 0.20, alpha: 1.0)
+                : UIColor(red: 1.00, green: 0.86, blue: 0.94, alpha: 1.0)
+        })
+
+        /// 淺粉紫漸層的中點
+        static let gradientMid = Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor(red: 0.10, green: 0.09, blue: 0.24, alpha: 1.0)
+                : UIColor(red: 0.92, green: 0.82, blue: 0.97, alpha: 1.0)
+        })
+
+        /// 淺粉紫漸層的終點
+        static let gradientEnd = Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor(red: 0.07, green: 0.07, blue: 0.26, alpha: 1.0)
+                : UIColor(red: 0.80, green: 0.78, blue: 1.00, alpha: 1.0)
+        })
 
         /// 主要強調色（按鈕、選取狀態）
-        static let accent        = Color(red: 0.73, green: 0.69, blue: 0.88)
+        /// 深色模式改成亮一點的紫，讓按鈕在暗背景上跳得出來
+        static let accent = Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor(red: 0.82, green: 0.78, blue: 0.96, alpha: 1.0)
+                : UIColor(red: 0.73, green: 0.69, blue: 0.88, alpha: 1.0)
+        })
+
         /// 內文文字色
-        static let textPrimary   = Color(red: 0.15, green: 0.13, blue: 0.22)
+        /// 深色模式幾乎純白，確保對比度 > WCAG AA (4.5:1)
+        static let textPrimary = Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor(red: 0.96, green: 0.96, blue: 0.98, alpha: 1.0)
+                : UIColor(red: 0.15, green: 0.13, blue: 0.22, alpha: 1.0)
+        })
+
         /// 次要文字色（label / placeholder）
-        static let textSecondary = Color(red: 0.42, green: 0.40, blue: 0.50)
+        /// 深色模式用淺灰，避免次要文字在深背景上變成雜訊
+        static let textSecondary = Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor(red: 0.75, green: 0.73, blue: 0.82, alpha: 1.0)
+                : UIColor(red: 0.42, green: 0.40, blue: 0.50, alpha: 1.0)
+        })
+
         /// 玻璃卡背後微微的描邊色
-        static let glassStroke   = Color.white.opacity(0.55)
+        /// 深色模式用更柔的白，避免邊框在暗背景上太刺
+        static let glassStroke = Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor.white.withAlphaComponent(0.18)
+                : UIColor.white.withAlphaComponent(0.55)
+        })
     }
 
     // MARK: - Layout
