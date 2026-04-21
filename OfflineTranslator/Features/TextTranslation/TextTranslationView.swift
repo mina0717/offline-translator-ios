@@ -16,7 +16,9 @@ struct TextTranslationView: View {
             if vm == nil {
                 vm = TextTranslationViewModel(
                     useCase: deps.translateTextUseCase,
-                    detector: deps.languageDetector
+                    detector: deps.languageDetector,
+                    vocabulary: deps.vocabularyRepository,
+                    dictionary: deps.dictionaryService
                 )
             }
         }
@@ -42,7 +44,7 @@ private struct TextTranslationContent: View {
     /// 這個值是「警告/阻擋」用的軟上限，不是硬阻擋（使用者若真的貼超長段落，
     /// 我們顯示紅字提示但仍允許送出，由翻譯服務自行回 error）。
     private static let softCharacterLimit = 2000
-    private static let warnThreshold = 1600  // 80% 時變琥珀色提醒
+    private static let warnThreshold = 1600  // 80% 時變琣願色提醒
 
     var body: some View {
         ScrollView {
@@ -190,6 +192,17 @@ private struct TextTranslationContent: View {
             if !vm.outputText.isEmpty {
                 HStack {
                     Spacer()
+                    Button {
+                        Task { await vm.saveToVocabulary() }
+                    } label: {
+                        Label(vm.isSaved ? "已收藏" : "收藏",
+                              systemImage: vm.isSaved ? "star.fill" : "star")
+                    }
+                    .font(Theme.Font.caption)
+                    .buttonStyle(.bordered)
+                    .tint(Theme.Colors.accent)
+                    .disabled(vm.isSaved)
+
                     Button {
                         UIPasteboard.general.string = vm.outputText
                     } label: {

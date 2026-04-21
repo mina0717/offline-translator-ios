@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit      // UIImage, UIImagePickerController, UIPasteboard
 import PhotosUI
+import TipKit
 
 struct PhotoTranslationView: View {
     @EnvironmentObject private var deps: AppDependencies
@@ -30,6 +31,11 @@ struct PhotoTranslationView: View {
         @ObservedObject var vm: PhotoTranslationViewModel
         @State private var photoPickerItem: PhotosPickerItem?
         @State private var showCamera: Bool = false
+
+        /// v1.1：TipKit 新手引導 — 拍照翻譯
+        private let cameraTip = CameraTip()
+        /// v1.1：TipKit 新手引導 — 切換語言
+        private let swapTip = LanguageSwitchTip()
 
         var body: some View {
             ScrollView {
@@ -75,7 +81,10 @@ struct PhotoTranslationView: View {
         private var languageBar: some View {
             HStack(spacing: Theme.Spacing.sm) {
                 LanguageChip(language: vm.sourceLanguage, caption: "來源")
-                Button(action: vm.swapLanguages) {
+                Button {
+                    vm.swapLanguages()
+                    LanguageSwitchTip.hasSwappedOnce = true
+                } label: {
                     Image(systemName: "arrow.left.arrow.right")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Theme.Colors.accent)
@@ -84,6 +93,7 @@ struct PhotoTranslationView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(vm.isProcessing)
+                .popoverTip(swapTip)
                 LanguageChip(language: vm.targetLanguage, caption: "譯文")
             }
         }
@@ -133,6 +143,7 @@ struct PhotoTranslationView: View {
             HStack(spacing: Theme.Spacing.sm) {
                 Button {
                     showCamera = true
+                    CameraTip.hasUsedCameraOnce = true
                 } label: {
                     Label("相機", systemImage: "camera")
                         .frame(maxWidth: .infinity)
@@ -141,6 +152,7 @@ struct PhotoTranslationView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(Theme.Colors.accent)
                 .disabled(vm.isProcessing)
+                .popoverTip(cameraTip)
 
                 PhotosPicker(
                     selection: $photoPickerItem,

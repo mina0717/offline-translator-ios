@@ -8,12 +8,18 @@ struct OfflineTranslatorApp: App {
     // Day 4 串 Apple Translation 前改成 `.makeDefault()`。
     @StateObject private var deps = AppDependencies.makeMock()
 
+    // v1.1：啟動時初始化 TipKit（新手引導）
+    init() {
+        OnboardingTips.configure()
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(deps)
                 .tint(Theme.Colors.accent)
-                .preferredColorScheme(.light) // 設計以淺色為主
+                // v1.1：拿掉 .preferredColorScheme(.light) 鎖定。
+                // Theme.Colors.* 現在是動態色，會跟著系統切亮／暗。
         }
         .modelContainer(deps.modelContainer)
     }

@@ -1,7 +1,7 @@
 import XCTest
 @testable import OfflineTranslator
 
-// MARK: - ─────────────────────────────────────────────────────────────
+// MARK: - ──────────────────────────────────────────────────────────────
 // SpeechTranslationViewModel 單元測試
 //
 // 覆蓋項目：
@@ -124,5 +124,68 @@ final class SpeechTranslationViewModelTests: XCTestCase {
         XCTAssertTrue(vm.finalTranscript.isEmpty)
         XCTAssertTrue(vm.translatedText.isEmpty)
         XCTAssertNil(vm.errorMessage)
+    }
+
+    // MARK: - retryTranslation() (v1.1 新增)
+    //
+    // 情境：第一次翻譯失敗 → 使用者點「重試翻譯」。
+    // 期望：用既有的 finalTranscript 再翻一次，不需要重錄。
+    // 覆蓋：
+    //   1. 一開始 MT 丟錯 → errorMessage 被填、phase 回 idle
+    //   2. 把 mt.nextError 清空後呼叫 retryTranslation()
+    //      → 重用 finalTranscript、translatedText 正常、phase 回 .done、errorMessage 被清掉
+    //   3. finalTranscript 是空的時候 retryTranslation() 應該直接 no-op
+
+    func test_retryTranslation_reusesFinalTranscript_afterMTError() async {
+        let (vm, _, mt, _) = makeVM(cannedFinal: "早安")
+        mt.nextError = .modelNotAvailable       // 第一次會翻譯失敗
+        vm.sourceLanguage = .traditionalChinese
+        vm.targetLanguage = .english
+
+        vm.startHold()
+        try? await Task.sleep(nanoseconds: 200_000_000)
+        await vm.releaseHold()
+
+        // 確認第一次真的失敗了
+        XCTAssertEqual(vm.phase, .idle, "MT 失敗後應回到 idle")
+        XCTAssertNotNil(vm.errorMessage, "MT 失敗後應有錯誤訊息")
+        XCTAssertEqual(vm.finalTranscript, "早安", "finalTranscript 應保留給重試用")
+        XCTAssertTrue(vm.translatedText.isEmpty)
+
+        // 修好錯誤 → 點重試
+        mt.nextError = nil
+        await vm.retryTranslation()
+
+        XCTAssertEqual(vm.phase, .done, "重試成功後應進入 .done")
+        XCTAssertNil(vm.errorMessage, "重試成功後 errorMessage 應被清掉")
+        XCTAssertFalse(vm.translatedText.isEmpty, "應該產生譯文")
+        XCTAssertTrue(vm.translatedText.contains("zh-Hant→en"),
+                      "MTServiceMock 的格式包含 zh-Hant→en，用來驗證走到了翻譯")
+    }
+
+    func test_retryTranslation_emptyTranscript_noop() async {
+        let (vm, _, _, _) = makeVM()
+        vm.finalTranscript = ""        // 空的
+        vm.phase = .idle
+        vm.errorMessage = "舊錯誤"
+
+        await vm.retryTranslation()
+
+        // no-op：什麼都沒改、phase 保持原樣、errorMessage 不會被清
+        XCTAssertEqual(vm.phase, .idle)
+        XCTAssertTrue(vm.translatedText.isEmpty)
+        XCTAssertEqual(vm.errorMessage, "舊錯誤",
+                       "finalTranscript 是空的時候不應該清掉既有錯誤訊息")
+    }
+
+    func test_retryTranslation_ignoredWhileTranslating() async {
+        let (vm, _, _, _) = makeVM()
+        vm.finalTranscript = "早安"
+        vm.phase = .translating        // 已經在翻譯中了
+
+        await vm.retryTranslation()    // 應該 no-op
+
+        // phase 不會被改、也不會產生新的 translatedText
+        XCTAssertEqual(vm.phase, .translating)
     }
 }

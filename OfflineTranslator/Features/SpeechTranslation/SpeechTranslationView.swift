@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit   // UIPasteboard
+import TipKit
 
 struct SpeechTranslationView: View {
     @EnvironmentObject private var deps: AppDependencies
@@ -206,6 +207,9 @@ private struct HoldToSpeakButton: View {
     /// 記錄 haptic 是否已經在這次按下裡觸發過（避免 onChanged 被重複呼叫時狂震）
     @State private var hasHapticFiredThisPress: Bool = false
 
+    /// v1.1：TipKit 新手引導 — 按住說話
+    private let holdTip = HoldToSpeakTip()
+
     var body: some View {
         let diameter: CGFloat = 112
         let isActive = vm.isRecording
@@ -239,9 +243,14 @@ private struct HoldToSpeakButton: View {
                     // 放開的觸覺回饋（light → 輕輕收尾）
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     hasHapticFiredThisPress = false
-                    Task { await vm.releaseHold() }
+                    Task {
+                        await vm.releaseHold()
+                        // v1.1：首次錄完音 → 通知 TipKit 隱藏 hold-to-speak tip
+                        HoldToSpeakTip.hasRecordedOnce = true
+                    }
                 }
         )
+        .popoverTip(holdTip)
         .disabled(vm.isBusy)
         .opacity(vm.isBusy ? 0.5 : 1.0)
         .accessibilityLabel(isActive ? "錄音中，放開結束" : "按住開始錄音")
