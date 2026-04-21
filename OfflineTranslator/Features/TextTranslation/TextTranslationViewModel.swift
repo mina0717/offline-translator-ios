@@ -13,14 +13,28 @@ final class TextTranslationViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
 
+    /// v1.1：這一輪翻譯是否已被收藏到生詞本
+    @Published var isSaved: Bool = false
+
     // MARK: - Dependencies
 
     private let useCase: TranslateTextUseCase
     private let detector: LanguageDetector
+    /// v1.1：生詞本（可選，舊測試可傳 nil）
+    private let vocabulary: VocabularyRepository?
+    /// v1.1：字典 fallback（可選，用來在 MT 翻得很怪時補充 note）
+    private let dictionary: DictionaryLookupService?
 
-    init(useCase: TranslateTextUseCase, detector: LanguageDetector) {
+    init(
+        useCase: TranslateTextUseCase,
+        detector: LanguageDetector,
+        vocabulary: VocabularyRepository? = nil,
+        dictionary: DictionaryLookupService? = nil
+    ) {
         self.useCase = useCase
         self.detector = detector
+        self.vocabulary = vocabulary
+        self.dictionary = dictionary
     }
 
     // MARK: - Public
@@ -73,6 +87,7 @@ final class TextTranslationViewModel: ObservableObject {
         do {
             let result = try await useCase.execute(request)
             outputText = result.translatedText
+            isSaved = false         // 新的一輪譯文預設未收藏
         } catch let error as TranslationError {
             errorMessage = error.errorDescription
         } catch {
@@ -85,5 +100,34 @@ final class TextTranslationViewModel: ObservableObject {
         inputText = ""
         outputText = ""
         errorMessage = nil
+        isSaved = false
+    }
+
+    // MARK: - v1.1 Vocabulary integration
+
+    /// 把目前譯文收藏到生詞本。
+    /// 若 DictionaryFallbackService 有對應單字條目，順便把定義寫進 note。
+    func saveToVocabulary() async {
+        guard let vocabulary else { return }
+        let src = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let tgt = outputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !src.isEmpty, !tgt.isEmpty else { return }
+
+        let pair = LanguagePair(source: sourceLanguage, target: targetLanguage)
+        let note = dictionary?.lookup(word: src, pair: pair)?.noteSummary ?? ""
+
+        let result = TranslationResult(
+            sourceText: src,
+            translatedText: tgt,
+            pair: pair,
+            createdAt: .init()
+        )
+        do {
+            try await vocabulary.saveFromResult(result, note: note)
+            isSaved = true
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription
+                ?? error.localizedDescription
+        }
     }
 }
