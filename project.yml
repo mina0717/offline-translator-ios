@@ -41,7 +41,7 @@ targets:
         UIStatusBarStyle: UIStatusBarStyleDefault
         UIUserInterfaceStyle: Automatic
         NSMicrophoneUsageDescription: 需要麥克風才能將你的語音辨識為文字並進行翻譯。
-        NSSpeechRecognitionUsageDescription: 需要語音辨識功能以將錄製的語音轉為文字。
+        NSSpeechRecognitionUsageDescription: 需要語音辨識功能以將錄裵的語音轉為文字。
         NSCameraUsageDescription: 需要相機才能拍照並辨識圖片中的文字以進行翻譯。
         NSPhotoLibraryUsageDescription: 若你要從相簿挑選照片進行翻譯，需要存取相簿。
     settings:
@@ -51,6 +51,29 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"  # iPhone only for MVP
         SUPPORTS_MACCATALYST: NO
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+    dependencies:
+      - target: OfflineTranslatorShare
+        embed: true
+  OfflineTranslatorShare:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.4"
+    sources:
+      - OfflineTranslatorShare
+    info:
+      path: OfflineTranslatorShare/Info.plist
+      properties: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.placeholder.OfflineTranslator.Share
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: OfflineTranslatorShare/Info.plist
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+        SKIP_INSTALL: YES
+    dependencies:
+      - sdk: Translation.framework
   OfflineTranslatorTests:
     type: bundle.unit-test
     platform: iOS
