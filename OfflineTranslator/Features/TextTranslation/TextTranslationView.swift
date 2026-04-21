@@ -5,6 +5,23 @@ struct TextTranslationView: View {
     @EnvironmentObject private var deps: AppDependencies
     @State private var vm: TextTranslationViewModel?
 
+    /// v1.1：AppIntent / Siri 觸發時帶進來的初始文字。nil 代表一般進入，不做 prefill。
+    private let prefill: String?
+    /// v1.1：AppIntent 帶進來的目標語言偏好（zh-Hant ⇄ en）
+    private let initialTarget: Language?
+    /// v1.1：進畫面後要不要立刻自動翻譯（Siri / Shortcuts 的 UX 是使用者就是要結果）
+    private let autoTranslate: Bool
+
+    init(
+        prefill: String? = nil,
+        target: Language? = nil,
+        autoTranslate: Bool = true
+    ) {
+        self.prefill = prefill
+        self.initialTarget = target
+        self.autoTranslate = autoTranslate
+    }
+
     var body: some View {
         ZStack {
             GradientBackground()
@@ -14,12 +31,35 @@ struct TextTranslationView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             if vm == nil {
-                vm = TextTranslationViewModel(
+                let viewModel = TextTranslationViewModel(
                     useCase: deps.translateTextUseCase,
                     detector: deps.languageDetector,
                     vocabulary: deps.vocabularyRepository,
                     dictionary: deps.dictionaryService
                 )
+                // v1.1 fix: 從 AppIntent 進來的話，套用 payload 後立刻翻譯。
+                if let prefill, !prefill.isEmpty {
+                    viewModel.inputText = prefill
+                    if let target = initialTarget {
+                        // 用偵測到的 source + 指定 target（target 的 mirror 作為 source 的合理預設）
+                        if let detected = deps.languageDetector.detect(prefill) {
+                            viewModel.sourceLanguage = detected
+                        } else {
+                            // 偵測不到就假設 source 是 target 的反向
+                            viewModel.sourceLanguage = (target == .english)
+                                ? .traditionalChinese : .english
+                        }
+                        viewModel.targetLanguage = target
+                    }
+                    vm = viewModel
+                    // v1.1 fix: 直接 await 讓 task 與 view lifecycle 綁定，
+                    // 使用者中途離開畫面時任務會被自動 cancel，不再懸空。
+                    if autoTranslate {
+                        await viewModel.translate()
+                    }
+                } else {
+                    vm = viewModel
+                }
             }
         }
     }
@@ -44,7 +84,7 @@ private struct TextTranslationContent: View {
     /// 這個值是「警告/阻擋」用的軟上限，不是硬阻擋（使用者若真的貼超長段落，
     /// 我們顯示紅字提示但仍允許送出，由翻譯服務自行回 error）。
     private static let softCharacterLimit = 2000
-    private static let warnThreshold = 1600  // 80% 時變琣願色提醒
+    private static let warnThreshold = 1600  // 80% 時變琥珀色提醒
 
     var body: some View {
         ScrollView {
@@ -201,7 +241,9 @@ private struct TextTranslationContent: View {
                     .font(Theme.Font.caption)
                     .buttonStyle(.bordered)
                     .tint(Theme.Colors.accent)
-                    .disabled(vm.isSaved)
+                    // v1.1 fix: 信任 VM 的 canSave（依 lastSnapshot），snapshot 被
+                    // swap/clear 清掉時也要 disable，光看 isSaved 不夠。
+                    .disabled(!vm.canSave)
 
                     Button {
                         UIPasteboard.general.string = vm.outputText
