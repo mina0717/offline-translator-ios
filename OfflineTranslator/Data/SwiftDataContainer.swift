@@ -6,10 +6,11 @@ import SwiftData
 enum SwiftDataContainer {
 
     /// 正式 App 使用的 persistent container。
+    /// v1.1：新增 VocabularyEntry schema
     static let shared: ModelContainer = {
         do {
             return try ModelContainer(
-                for: TranslationRecord.self
+                for: TranslationRecord.self, VocabularyEntry.self
             )
         } catch {
             fatalError("無法建立 SwiftData ModelContainer: \(error)")
@@ -20,7 +21,7 @@ enum SwiftDataContainer {
     static func makeInMemory() throws -> ModelContainer {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         return try ModelContainer(
-            for: TranslationRecord.self,
+            for: TranslationRecord.self, VocabularyEntry.self,
             configurations: config
         )
     }
