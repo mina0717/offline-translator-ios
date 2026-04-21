@@ -1,0 +1,15 @@
+/*
+  InfoPlist.strings (Traditional Chinese)
+  OfflineTranslator
+
+  中文（繁體）系統 locale 顯示的權限字串。
+  這一份是主要開發語言（CFBundleDevelopmentRegion = zh-Hant），
+  所以跟 Info.plist 內已寫的 NS*UsageDescription 一致。
+*/
+
+"CFBundleDisplayName" = "離線翻譯";
+
+"NSMicrophoneUsageDescription" = "需要麥克風才能將你的語音辨識為文字並進行翻譯。";
+"NSSpeechRecognitionUsageDescription" = "需要語音辨識功能以將錄製的語音轉為文字。";
+"NSCameraUsageDescription" = "需要相機才能拍照並辨識圖片中的文字以進行翻譯。";
+"NSPhotoLibraryUsageDescription" = "若你要從相簿挑選照片進行翻譯，需要存取相簿。";

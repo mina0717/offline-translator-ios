@@ -135,15 +135,35 @@ struct SpeechTranslationView: View {
         @ViewBuilder
         private var errorBanner: some View {
             if let msg = vm.errorMessage {
-                Text(msg)
-                    .font(Theme.Font.caption)
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(Theme.Spacing.sm)
-                    .background(
-                        RoundedRectangle(cornerRadius: Theme.Radius.md)
-                            .fill(Color.red.opacity(0.08))
-                    )
+                HStack(alignment: .top, spacing: Theme.Spacing.sm) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(msg)
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(.red)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        HStack(spacing: Theme.Spacing.md) {
+                            if !vm.finalTranscript.trimmingCharacters(in: .whitespaces).isEmpty {
+                                Button("重試翻譯") {
+                                    Task { await vm.retryTranslation() }
+                                }
+                                .font(Theme.Font.caption)
+                                .foregroundStyle(Theme.Colors.accent)
+                            }
+                            Button("知道了") {
+                                vm.dismissError()
+                            }
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                        }
+                    }
+                }
+                .padding(Theme.Spacing.sm)
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.Radius.md)
+                        .fill(Color.red.opacity(0.08))
+                )
             }
         }
 
@@ -183,6 +203,8 @@ struct SpeechTranslationView: View {
 private struct HoldToSpeakButton: View {
     @ObservedObject var vm: SpeechTranslationViewModel
     @GestureState private var isPressing: Bool = false
+    /// 記錄 haptic 是否已經在這次按下裡觸發過（避免 onChanged 被重複呼叫時狂震）
+    @State private var hasHapticFiredThisPress: Bool = false
 
     var body: some View {
         let diameter: CGFloat = 112
@@ -206,16 +228,25 @@ private struct HoldToSpeakButton: View {
             DragGesture(minimumDistance: 0)
                 .updating($isPressing) { _, state, _ in state = true }
                 .onChanged { _ in
-                    if !vm.isRecording && !vm.isBusy {
+                    if !vm.isRecording && !vm.isBusy && !hasHapticFiredThisPress {
+                        // 按下瞬間的觸覺回饋（medium → 有點份量，像開始做事的感覺）
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        hasHapticFiredThisPress = true
                         vm.startHold()
                     }
                 }
                 .onEnded { _ in
+                    // 放開的觸覺回饋（light → 輕輕收尾）
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    hasHapticFiredThisPress = false
                     Task { await vm.releaseHold() }
                 }
         )
         .disabled(vm.isBusy)
         .opacity(vm.isBusy ? 0.5 : 1.0)
+        .accessibilityLabel(isActive ? "錄音中，放開結束" : "按住開始錄音")
+        .accessibilityHint("按住這個按鈕錄下要翻譯的話，放開時會自動翻譯與朗讀")
+        .accessibilityAddTraits(.isButton)
     }
 }
 

@@ -1,0 +1,39 @@
+/*
+  Localizable.strings (English)
+  OfflineTranslator
+
+  Note:
+  MVP v0.1 的主要使用語言是繁體中文（UI 內的 hard-coded 字串尚未走 NSLocalizedString），
+  這份檔案目前只放少量給 App Store 描述 / 未來切換用的關鍵字串。
+  之後要做完整英文在地化時，把 UI 裡的字串改成 String(localized:) 或 Text(LocalizedStringKey)
+  再把 key 登記在這裡。
+*/
+
+// MARK: - App tabs / screens
+"tab.text" = "Text";
+"tab.speech" = "Speech";
+"tab.photo" = "Photo";
+"tab.history" = "History";
+"tab.language_packs" = "Language Packs";
+
+// MARK: - Common actions
+"action.translate" = "Translate";
+"action.copy" = "Copy";
+"action.retry" = "Retry";
+"action.cancel" = "Cancel";
+"action.clear" = "Clear";
+"action.download" = "Download";
+"action.delete" = "Delete";
+"action.ok" = "OK";
+
+// MARK: - Status
+"status.translating" = "Translating…";
+"status.recording" = "Recording";
+"status.downloading" = "Downloading";
+"status.ready" = "Ready offline";
+"status.failed" = "Failed";
+
+// MARK: - Errors
+"error.empty_input" = "Please enter some text first.";
+"error.unsupported_pair" = "This language pair is not supported in the MVP.";
+"error.model_not_available" = "The translation model is not available. Please download the language pack in Settings.";

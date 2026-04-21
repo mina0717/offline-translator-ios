@@ -75,10 +75,10 @@ OfflineTranslator/
 ├── System/                    # PermissionManager
 ├── Features/
 │   ├── Home/                  # 首頁（四入口 + 歷史紀錄）
-│   ├── TextTranslation/       # ✅ Day 4–5 完整實作 (MVVM)
-│   ├── SpeechTranslation/     # 🟡 Day 6–7 stub
-│   ├── PhotoTranslation/      # 🟡 Day 8–9 stub
-│   ├── LanguagePack/          # 🟡 Day 10 stub（含基本 UI）
+│   ├── TextTranslation/       # ✅ 完整實作 (MVVM)
+│   ├── SpeechTranslation/     # ✅ 完整實作（按住說話 + 自動 TTS）
+│   ├── PhotoTranslation/      # ✅ 完整實作（相機/相簿 + OCR + 翻譯）
+│   ├── LanguagePack/          # ✅ 完整實作（狀態檢查 / 下載 / 引導設定）
 │   └── History/               # ✅ 完整可運作
 └── Resources/                 # Info.plist, Assets.xcassets
 ```
@@ -91,12 +91,13 @@ OfflineTranslator/
 |---|---|---|
 | 1 | ✅ 範圍 / 技術 / UI 風格定案 | （已完成） |
 | 2–3 | ✅ 專案骨架、SwiftData、歷史紀錄底層 | `Data/`, `App/`, `DesignSystem/` |
-| 4–5 | 🟡 文字翻譯串 Apple Translation | `Services/MTServiceApple.swift`, `Features/TextTranslation/` |
-| 6–7 | ⬜ 語音翻譯（ASR + 翻譯 + TTS） | `Services/ASRServiceSpeech.swift`, `Features/SpeechTranslation/` |
-| 8–9 | ⬜ 拍照翻譯（Vision OCR + 翻譯） | `Services/OCRServiceVision.swift`, `Features/PhotoTranslation/` |
-| 10 | ⬜ 語言包管理（下載 / 刪除 / 狀態） | `Domain/UseCases/ModelManager.swift`, `Features/LanguagePack/` |
-| 11–12 | ⬜ 整合測試、UI 微調、權限流程 | 全 App |
-| 13 | ⬜ QA、修 bug、效能檢查 | `OfflineTranslatorTests/` |
+| 4–5 | ✅ 文字翻譯串 Apple Translation | `Services/MTServiceApple.swift`, `Features/TextTranslation/` |
+| 6–7 | ✅ 語音翻譯（ASR + 翻譯 + TTS） | `Services/ASRServiceSpeech.swift`, `Features/SpeechTranslation/` |
+| 8–9 | ✅ 拍照翻譯（Vision OCR + 翻譯） | `Services/OCRServiceVision.swift`, `Features/PhotoTranslation/` |
+| 10 | ✅ 語言包管理（下載 / 引導刪除 / 狀態） | `Domain/UseCases/ModelManager.swift`, `Features/LanguagePack/` |
+| 11–12 | ✅ 整合測試、UI 微調、權限流程、無障礙標籤 | 全 App |
+| 13 | ✅ P3 Polish（OCR resize、觸覺、重試、字數、隱私聲明、在地化骨架、UseCase 測試） | `Services/OCRServiceVision.swift`、`Features/**/*View.swift`、`Resources/PrivacyInfo.xcprivacy`、`Resources/**/Localizable.strings` |
+| 13.5 | 🟡 QA、修 bug、效能檢查（需實機驗證） | `OfflineTranslatorTests/`, `docs/E2E.md` |
 | 14 | ⬜ 打包 Demo (5/3 交付) | — |
 
 ---
@@ -120,19 +121,32 @@ xcodebuild test \
   -destination 'platform=iOS Simulator,name=iPhone 15'
 ```
 
-目前已有：
-- `TranslateTextUseCaseTests`：文字翻譯 happy / empty / unsupported / error path
+目前已有（共 9 個測試檔案）：
 - `LanguageTests`：語言對覆蓋測試
+- `TranslateTextUseCaseTests`：文字翻譯 happy / empty / unsupported / error path
+- `PhotoTranslateUseCaseTests`：拍照翻譯 UseCase — OCR 透傳、merge 多行、空輸入 / unsupported / history 失敗容忍
+- `SpeechTranslateUseCaseTests`：語音翻譯 UseCase — ASR 串流、stop / translate trim / tts 透傳
+- `TextTranslationViewModelTests`：VM 的 translate / swap / autoDetect / clear
+- `SpeechTranslationViewModelTests`：按住錄音 → 翻譯 → 自動 TTS 全流程
+- `PhotoTranslationViewModelTests`：OCR 成功 / 失敗 / swap / clear
+- `LanguagePackViewModelTests`：reload / download / cancellation / remove 引導
+- `HistoryViewModelTests`：reload / clearAll / repository 失敗
 
-每個 Service 真實作上線時，請補對應 Service 層的單元測試 + 至少一個整合測試。
+Service 層真實作（`MTServiceApple`、`ASRServiceSpeech`、`OCRServiceVision`、`TTSServiceAVFoundation`）因依賴 iOS 系統 framework，需在實機 / 模擬器上做整合測試，見 `docs/E2E.md`。
 
 ---
 
-## 六、已知 TODO
+## 六、已知 TODO（借到 Mac + 實機後要驗的項目）
 
-- `MTServiceApple.swift` — Day 4 接 Apple Translation
-- `OCRServiceVision.swift` — Day 8 真機驗證日文 / 繁中辨識率
-- `ASRServiceSpeech.swift` — Day 6 完整實作（audioEngine + recognitionTask）
-- `ModelManager` — Apple Translation 的 LanguageAvailability API 接入
-- 拍照 / 相簿挑圖 UI（PhotosPicker + UIImagePickerController）
-- 權限被拒時的引導 UI（跳轉到設定 App）
+完整檢查表請見 `docs/E2E.md`。簡版：
+
+- [ ] Mac 上裝 XcodeGen 並 `xcodegen generate` 能生成 `.xcodeproj`
+- [ ] 填入 `DEVELOPMENT_TEAM` 後能在模擬器跑起來
+- [ ] Mock 模式下 Home → 四個入口 → 歷史紀錄全部能點開不 crash
+- [ ] 切到 `makeDefault()` 後：
+    - [ ] 文字翻譯：第一次會觸發 Apple Translation 下載 sheet
+    - [ ] 語音翻譯：會跳麥克風 + 語音辨識權限對話框
+    - [ ] 拍照翻譯：會跳相機 + 相簿權限對話框
+    - [ ] 飛航模式下文字翻譯依然能運作（驗證「離線」承諾）
+- [ ] 語言包頁：下載/引導到設定刪除流程 OK
+- [ ] 跑完整 XCTest suite，全部綠燈

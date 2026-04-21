@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PrivacyInfo.xcprivacy
+  OfflineTranslator
+
+  Apple 自 2024-05 起要求 App Store 送審必交這份 manifest。
+  我們這隻 App 完全離線、不收集任何資料、沒有追蹤，所以清單非常短。
+
+  如果之後 ITMS-91053 / ITMS-91061 被退件（通常是框架層面用了 required-reason API），
+  就到下面 NSPrivacyAccessedAPITypes 裡加對應的類別 + 原因碼。
+  常見的會被點名的類別：
+    • NSPrivacyAccessedAPICategoryUserDefaults        → UserDefaults / @AppStorage
+    • NSPrivacyAccessedAPICategoryFileTimestamp       → 讀檔 creation / modification date
+    • NSPrivacyAccessedAPICategoryDiskSpace           → FileManager 查可用空間
+    • NSPrivacyAccessedAPICategorySystemBootTime      → mach_absolute_time 等
+    • NSPrivacyAccessedAPICategoryActiveKeyboard      → UITextInputMode.activeInputModes
+
+  Reference: https://developer.apple.com/documentation/bundleresources/privacy_manifest_files
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- 有沒有做追蹤（跨 App / 跨公司）：沒有 -->
+    <key>NSPrivacyTracking</key>
+    <false/>
+
+    <!-- 有收集哪些資料：完全沒有（離線翻譯，不上傳、不存 server） -->
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array/>
+
+    <!-- 追蹤域名：無 -->
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+
+    <!-- Required Reason API 使用聲明：目前沒直接使用任何 required reason API。
+         如被 App Store review 退件再對應補上。 -->
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array/>
+</dict>
+</plist>

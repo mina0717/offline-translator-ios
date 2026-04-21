@@ -85,6 +85,10 @@ struct LanguagePackView: View {
                         .font(Theme.Font.caption)
                         .foregroundStyle(Theme.Colors.textSecondary)
                 }
+                // 把資訊區塊合併為單一 VoiceOver 元素，
+                // 按鈕仍維持獨立可點（不被包含在這個 accessibility group 裡）
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(accessibilityLabel(for: pack))
                 Spacer()
                 actionButton(for: pack)
             }
@@ -148,9 +152,11 @@ struct LanguagePackView: View {
                 }
                 .buttonStyle(.bordered)
                 .tint(.red)
+                .accessibilityLabel(actionAccessibilityLabel(for: pack))
 
             case .downloading:
                 ProgressView()
+                    .accessibilityLabel(actionAccessibilityLabel(for: pack))
 
             case .notDownloaded, .failed:
                 if isDownloadingThis {
@@ -159,6 +165,7 @@ struct LanguagePackView: View {
                         Text("等候中…")
                             .font(Theme.Font.caption)
                     }
+                    .accessibilityLabel("下載等候中")
                 } else {
                     Button {
                         Task { await vm.download(pack.pair) }
@@ -169,6 +176,7 @@ struct LanguagePackView: View {
                     .buttonStyle(.borderedProminent)
                     .tint(Theme.Colors.accent)
                     .disabled(vm.downloadingPair != nil)
+                    .accessibilityLabel(actionAccessibilityLabel(for: pack))
                 }
             }
         }
@@ -177,6 +185,29 @@ struct LanguagePackView: View {
 
         private func pairTitle(_ pair: LanguagePair) -> String {
             "\(pair.source.flag) \(pair.source.displayName) → \(pair.target.flag) \(pair.target.displayName)"
+        }
+
+        /// VoiceOver 讀出整張 row 的文字：不帶 emoji，只念內容
+        private func accessibilityLabel(for pack: LanguagePackInfo) -> String {
+            let direction = "\(pack.pair.source.displayName)翻譯成\(pack.pair.target.displayName)"
+            let statusPhrase: String
+            switch pack.status {
+            case .notDownloaded: statusPhrase = "尚未下載"
+            case .downloading(let p): statusPhrase = "下載中 \(Int(p * 100)) 趴"
+            case .ready: statusPhrase = "已下載，可離線使用"
+            case .failed: statusPhrase = "下載失敗"
+            }
+            return "\(direction)，\(statusPhrase)，約 \(pack.estimatedSizeMB) 百萬位元組"
+        }
+
+        /// 給動作按鈕的 a11y 標籤（VoiceOver 才會聽到完整語言對）
+        private func actionAccessibilityLabel(for pack: LanguagePackInfo) -> String {
+            let direction = "\(pack.pair.source.displayName)到\(pack.pair.target.displayName)"
+            switch pack.status {
+            case .ready: return "刪除\(direction)語言包"
+            case .notDownloaded, .failed: return "下載\(direction)語言包"
+            case .downloading: return "\(direction)語言包下載中"
+            }
         }
 
         private func statusText(for pack: LanguagePackInfo) -> String {

@@ -1,0 +1,14 @@
+/*
+  InfoPlist.strings (English)
+  OfflineTranslator
+
+  使用系統 locale 為 en 時顯示的權限字串。
+  這幾個 key 對應 Info.plist 的 NS*UsageDescription（透過 project.yml 注入）。
+*/
+
+"CFBundleDisplayName" = "Offline Translator";
+
+"NSMicrophoneUsageDescription" = "Microphone access is needed to convert your speech into text for translation.";
+"NSSpeechRecognitionUsageDescription" = "Speech recognition is needed to convert your recorded speech into text on-device.";
+"NSCameraUsageDescription" = "Camera access is needed to capture photos and recognize text inside them for translation.";
+"NSPhotoLibraryUsageDescription" = "Photo library access is needed so you can pick existing images to translate text from.";

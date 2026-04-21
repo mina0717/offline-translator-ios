@@ -120,4 +120,14 @@ final class PhotoTranslationViewModel: ObservableObject {
         errorMessage = nil
         phase = .idle
     }
+
+    /// 錯誤後的重試：如果已經有 OCR 結果就重翻，否則重跑 OCR + 翻譯
+    func retry() async {
+        guard let image = pickedImage else { return }
+        if recognizedLines.isEmpty {
+            await process(image: image)
+        } else {
+            await translateRecognized()
+        }
+    }
 }

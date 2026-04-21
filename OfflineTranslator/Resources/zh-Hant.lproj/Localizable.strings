@@ -1,0 +1,36 @@
+/*
+  Localizable.strings (繁體中文)
+  OfflineTranslator
+
+  同 en.lproj/Localizable.strings，先把主要 key 登記起來，
+  未來程式裡改成 String(localized: "xxx") 會自動用這份。
+*/
+
+// MARK: - App tabs / screens
+"tab.text" = "文字翻譯";
+"tab.speech" = "語音翻譯";
+"tab.photo" = "拍照翻譯";
+"tab.history" = "歷史紀錄";
+"tab.language_packs" = "語言包";
+
+// MARK: - Common actions
+"action.translate" = "翻譯";
+"action.copy" = "複製";
+"action.retry" = "重試";
+"action.cancel" = "取消";
+"action.clear" = "清除";
+"action.download" = "下載";
+"action.delete" = "刪除";
+"action.ok" = "好";
+
+// MARK: - Status
+"status.translating" = "翻譯中…";
+"status.recording" = "錄音中";
+"status.downloading" = "下載中";
+"status.ready" = "可離線使用";
+"status.failed" = "失敗";
+
+// MARK: - Errors
+"error.empty_input" = "請先輸入要翻譯的文字";
+"error.unsupported_pair" = "這個語言組合在 MVP 範圍之外";
+"error.model_not_available" = "找不到翻譯模型，請到「語言包」下載";

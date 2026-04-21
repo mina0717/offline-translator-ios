@@ -173,15 +173,28 @@ struct PhotoTranslationView: View {
         @ViewBuilder
         private var errorBanner: some View {
             if let msg = vm.errorMessage {
-                Text(msg)
-                    .font(Theme.Font.caption)
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(Theme.Spacing.sm)
-                    .background(
-                        RoundedRectangle(cornerRadius: Theme.Radius.md)
-                            .fill(Color.red.opacity(0.08))
-                    )
+                HStack(alignment: .top, spacing: Theme.Spacing.sm) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(msg)
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(.red)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        if vm.pickedImage != nil {
+                            Button("重試") {
+                                Task { await vm.retry() }
+                            }
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(Theme.Colors.accent)
+                        }
+                    }
+                }
+                .padding(Theme.Spacing.sm)
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.Radius.md)
+                        .fill(Color.red.opacity(0.08))
+                )
             }
         }
 

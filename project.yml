@@ -26,13 +26,20 @@ targets:
         CFBundleDisplayName: Offline Translator
         CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
-        CFBundleDevelopmentRegion: zh_TW
+        CFBundleDevelopmentRegion: zh-Hant
+        CFBundleLocalizations:
+          - zh-Hant
+          - en
         LSRequiresIPhoneOS: true
-        UILaunchScreen: {}
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen:
+          UIColorName: AccentColor
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+        UIStatusBarStyle: UIStatusBarStyleDefault
+        UIUserInterfaceStyle: Automatic
         NSMicrophoneUsageDescription: 需要麥克風才能將你的語音辨識為文字並進行翻譯。
         NSSpeechRecognitionUsageDescription: 需要語音辨識功能以將錄製的語音轉為文字。
         NSCameraUsageDescription: 需要相機才能拍照並辨識圖片中的文字以進行翻譯。

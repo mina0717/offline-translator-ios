@@ -170,4 +170,28 @@ final class SpeechTranslationViewModel: ObservableObject {
         errorMessage = nil
         phase = .idle
     }
+
+    /// 翻譯失敗後的重試：如果還留著 finalTranscript 就重翻一次，
+    /// 不用再讓使用者重錄。
+    func retryTranslation() async {
+        guard !finalTranscript.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        guard !isRecording && phase != .translating else { return }
+        errorMessage = nil
+        phase = .translating
+        do {
+            let result = try await useCase.translate(finalTranscript, pair: currentPair)
+            translatedText = result.translatedText
+            phase = .done
+            await speakTranslation()
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription
+                ?? error.localizedDescription
+            phase = .idle
+        }
+    }
+
+    /// 單純把錯誤訊息吃掉（點「知道了」用）
+    func dismissError() {
+        errorMessage = nil
+    }
 }
