@@ -2,11 +2,9 @@
   Localizable.strings (English)
   OfflineTranslator
 
-  Note:
-  MVP v0.1 的主要使用語言是繁體中文（UI 內的 hard-coded 字串尚未走 NSLocalizedString），
-  這份檔案目前只放少量給 App Store 描述 / 未來切換用的關鍵字串。
-  之後要做完整英文在地化時，把 UI 裡的字串改成 String(localized:) 或 Text(LocalizedStringKey)
-  再把 key 登記在這裡。
+  v1.1：完整英文在地化。因為 SwiftUI `Text("...")` 是 LocalizedStringKey，
+  我們沿用 zh-Hant 的原樣中文字串當 key，英文這邊一對一給出翻譯即可。
+  若使用者把系統語言切到英文，所有 UI 會自動改成這邊的值。
 */
 
 // MARK: - App tabs / screens
@@ -37,3 +35,109 @@
 "error.empty_input" = "Please enter some text first.";
 "error.unsupported_pair" = "This language pair is not supported in the MVP.";
 "error.model_not_available" = "The translation model is not available. Please download the language pack in Settings.";
+
+// MARK: - Home (HomeView)
+"離線翻譯" = "Offline Translator";
+"不用網路也能溝通" = "Communicate without the internet";
+"文字翻譯" = "Text";
+"輸入即翻譯" = "Type to translate";
+"語音翻譯" = "Speech";
+"按住說話" = "Hold to speak";
+"拍照翻譯" = "Photo";
+"辨識圖片文字" = "Recognize text in photos";
+"語言包" = "Language Packs";
+"離線管理" = "Manage offline";
+"歷史紀錄" = "History";
+"字典生詞" = "Dictionary";
+"儲存常用詞" = "Save your words";
+
+// MARK: - Text translation (TextTranslationView)
+"自動偵測" = "Auto-detect";
+"清除" = "Clear";
+"譯文會出現在這裡" = "Your translation appears here";
+"翻譯中…" = "Translating…";
+"複製" = "Copy";
+"翻譯" = "Translate";
+"重試" = "Retry";
+"收藏" = "Save";
+"已收藏" = "Saved";
+
+// MARK: - Speech translation (SpeechTranslationView)
+"來源" = "Source";
+"譯文" = "Translation";
+"辨識結果" = "Recognized";
+"錄音中" = "Recording";
+"聆聽中…開始說話" = "Listening… start speaking";
+"按住下方麥克風開始錄音" = "Hold the microphone below to start recording";
+"按住麥克風開始錄音" = "Hold to start recording";
+"放開結束錄音" = "Release to stop recording";
+"再按住錄下一句" = "Hold again to record the next phrase";
+"朗讀中…" = "Speaking…";
+"重試翻譯" = "Retry translation";
+"知道了" = "Got it";
+"錄音中，放開結束" = "Recording. Release to stop.";
+"按住開始錄音" = "Hold to start recording";
+"按住這個按鈕錄下要翻譯的話，放開時會自動翻譯與朗讀" = "Hold this button to record what you want to translate. Release to translate and hear the result.";
+"翻譯進行中" = "Translating";
+"將輸入的文字翻譯為目標語言" = "Translate the input text to the target language";
+
+// MARK: - Photo translation (PhotoTranslationView)
+"拍照或從相簿選一張有文字的圖" = "Take a photo or pick an image containing text";
+"辨識翻譯中…" = "Recognizing & translating…";
+"相機" = "Camera";
+"相簿" = "Photo Library";
+
+// MARK: - Language pack (LanguagePackView)
+"離線語言包" = "Offline Language Packs";
+"下載完成後，文字 / 語音 / 拍照翻譯都能在離線時使用。" = "Once downloaded, Text / Speech / Photo translation all work offline.";
+"MVP 範圍：中⇄英" = "MVP scope: Chinese ⇄ English";
+"下載：iOS 會顯示系統對話框，確認後自動下載。" = "Download: iOS shows a system dialog — tap Confirm and it downloads.";
+"刪除：需到「設定 → 一般 → 語言與地區 → 翻譯」手動移除。" = "Remove: do this in Settings → General → Language & Region → Translation.";
+"需要到「設定」操作" = "Open Settings to continue";
+"打開設定" = "Open Settings";
+"取消" = "Cancel";
+"下載" = "Download";
+"刪除" = "Delete";
+"等候中…" = "Queued…";
+"下載等候中" = "Download queued";
+"未下載" = "Not downloaded";
+"已下載" = "Downloaded";
+
+// MARK: - History (HistoryView)
+"尚無翻譯紀錄" = "No translations yet";
+"完成第一次翻譯後會出現在這裡" = "Your first translation will appear here";
+"清空" = "Clear All";
+
+// MARK: - Vocabulary (v1.1)
+"生詞本" = "Vocabulary";
+"尚無收藏的單字" = "No saved words yet";
+"點擊翻譯結果旁的星星就會加入這裡" = "Tap the star next to a translation to save it here";
+"字典查詢" = "Dictionary";
+
+// MARK: - Tips (v1.1)
+"tip.hold_to_speak.title" = "Hold to Speak";
+"tip.hold_to_speak.message" = "Press and hold this mic to record. Release to translate and hear the result.";
+"tip.camera.title" = "Photo Translate";
+"tip.camera.message" = "Snap or upload an image with text and we'll recognize and translate it.";
+"tip.language_switch.title" = "Swap Languages";
+"tip.language_switch.message" = "Tap the arrow in the middle to swap source and target languages.";
+
+// MARK: - Siri / App Intents (v1.1)
+"intent.translate_text" = "Translate Text";
+"intent.translate_clipboard" = "Translate Clipboard";
+"intent.phrase.translate" = "Translate this";
+
+// MARK: - Share Extension (v1.1)
+"share.title" = "Offline Translator";
+"share.translating" = "Translating…";
+"share.copy_result" = "Copy Translation";
+"share.done" = "Done";
+
+// MARK: - Interpolated strings
+// 下面這些都是 Text("中文 \(val) 中文") 在 SwiftUI 底層產生的 format key，
+// %@ 對應 String，%lld 對應 Int（flag / displayName 是 String，count 是 Int）
+"%@ %@ · 辨識結果" = "%@ %@ · Recognized";
+"%@ %@ · 譯文" = "%@ %@ · Translation";
+"%@ %@ · 辨識到 %lld 行" = "%@ %@ · Detected %lld line(s)";
+"約 %lld MB · 離線可用" = "~%lld MB · offline";
+"已輸入 %lld 字元，建議上限 %lld" = "%lld characters entered, recommended limit %lld";
