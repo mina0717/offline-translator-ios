@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head><meta charset="UTF-8"><title>Screenshot 01 — Hero</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1290px; height: 2796px; overflow: hidden; font-family: "Noto Sans TC", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif; }
+  body {
+    background: linear-gradient(180deg, #0B1438 0%, #050A24 100%);
+    color: #fff;
+    padding: 140px 100px 100px;
+    display: flex; flex-direction: column;
+  }
+  .brand { font-size: 32px; font-weight: 700; letter-spacing: 0.2em; color: #5EE2D7; text-transform: uppercase; margin-bottom: 64px; }
+  h1 { font-size: 128px; font-weight: 900; line-height: 1.0; letter-spacing: -0.03em; margin-bottom: 32px; }
+  h1 .hl { color: #5EE2D7; }
+  h1 .hl2 { color: #FF6B6B; }
+  .sub { font-size: 42px; line-height: 1.4; color: #d2d2d7; margin-bottom: 80px; font-weight: 500; }
+
+  .phone-mock {
+    flex: 1;
+    background: #000;
+    border-radius: 72px;
+    border: 12px solid #1a1a1a;
+    box-shadow: 0 60px 120px rgba(0,0,0,0.6);
+    overflow: hidden;
+    position: relative;
+  }
+  .phone-screen {
+    width: 100%; height: 100%;
+    background: linear-gradient(145deg, #0B1438 0%, #1a2252 100%);
+    padding: 100px 60px;
+    display: flex; flex-direction: column; gap: 40px;
+  }
+  .mode-row { display: flex; gap: 32px; }
+  .mode {
+    flex: 1; background: rgba(255,255,255,0.08);
+    border-radius: 36px; padding: 48px 32px;
+    text-align: center;
+  }
+  .mode .icon { font-size: 72px; margin-bottom: 16px; }
+  .mode .label { font-size: 28px; font-weight: 700; color: #fff; }
+  .mode .en { font-size: 20px; color: #a1a1a6; margin-top: 4px; }
+
+  .footer-tag {
+    margin-top: 60px;
+    font-size: 28px;
+    color: #6e6e73;
+    letter-spacing: 0.1em;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+  <div class="brand">Offline Translator</div>
+  <h1>一個 App，<br><span class="hl">四種</span><span class="hl2">翻譯</span>。</h1>
+  <div class="sub">文字・語音・拍照・字典<br>全部離線 · 零資料收集</div>
+
+  <div class="phone-mock">
+    <div class="phone-screen">
+      <div class="mode-row">
+        <div class="mode">
+          <div class="icon">📝</div>
+          <div class="label">文字</div>
+          <div class="en">Text</div>
+        </div>
+        <div class="mode">
+          <div class="icon">🎙</div>
+          <div class="label">語音</div>
+          <div class="en">Voice</div>
+        </div>
+      </div>
+      <div class="mode-row">
+        <div class="mode">
+          <div class="icon">📷</div>
+          <div class="label">拍照</div>
+          <div class="en">Photo</div>
+        </div>
+        <div class="mode">
+          <div class="icon">📖</div>
+          <div class="label">字典</div>
+          <div class="en">Dict</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-tag">@mina0717 · Made in Taiwan 🇹🇼</div>
+</body>
+</html>

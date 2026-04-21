@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head><meta charset="UTF-8"><title>Screenshot 02 — Voice</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1290px; height: 2796px; overflow: hidden; font-family: "Noto Sans TC", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif; }
+  body {
+    background: linear-gradient(180deg, #0B1438 0%, #050A24 100%);
+    color: #fff;
+    padding: 140px 100px 100px;
+    display: flex; flex-direction: column;
+  }
+  .brand { font-size: 28px; font-weight: 500; letter-spacing: 0.2em; color: #5EE2D7; text-transform: uppercase; margin-bottom: 48px; }
+  h1 { font-size: 120px; font-weight: 900; line-height: 1.0; letter-spacing: -0.03em; margin-bottom: 28px; }
+  h1 .hl { color: #5EE2D7; }
+  .sub { font-size: 40px; line-height: 1.4; color: #d2d2d7; margin-bottom: 80px; font-weight: 500; }
+
+  .phone-mock {
+    flex: 1;
+    background: #000;
+    border-radius: 72px;
+    border: 12px solid #1a1a1a;
+    box-shadow: 0 60px 120px rgba(0,0,0,0.6);
+    overflow: hidden;
+    position: relative;
+  }
+  .phone-screen {
+    width: 100%; height: 100%;
+    background: linear-gradient(145deg, #0B1438 0%, #1a2252 100%);
+    padding: 80px 60px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .chip { font-size: 26px; color: #5EE2D7; letter-spacing: 0.15em; margin-bottom: 40px; text-transform: uppercase; }
+  .bubble {
+    width: 100%;
+    background: rgba(94,226,215,0.12);
+    border: 2px solid rgba(94,226,215,0.3);
+    border-radius: 36px;
+    padding: 48px 40px;
+    font-size: 42px;
+    margin-bottom: 28px;
+    line-height: 1.4;
+  }
+  .bubble.out {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.15);
+    color: #d2d2d7;
+  }
+  .mic-area {
+    margin-top: auto;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .mic-circle {
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FF6B6B 0%, #FFB07C 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 110px;
+    box-shadow: 0 0 0 24px rgba(255,107,107,0.15), 0 0 0 48px rgba(255,107,107,0.07);
+    margin-bottom: 32px;
+  }
+  .mic-label { font-size: 32px; color: #a1a1a6; letter-spacing: 0.1em; }
+
+  .footer-tag { margin-top: 60px; font-size: 28px; color: #6e6e73; letter-spacing: 0.1em; text-align: center; }
+</style>
+</head>
+<body>
+  <div class="brand">02 · Voice Translation</div>
+  <h1>按住，就<span class="hl">翻譯</span>。</h1>
+  <div class="sub">Hold-to-Speak · 觸覺回饋<br>離線辨識 · 即時雙語顯示</div>
+
+  <div class="phone-mock">
+    <div class="phone-screen">
+      <div class="chip">● Listening · 離線辨識中</div>
+      <div class="bubble">Where is the nearest pharmacy?</div>
+      <div class="bubble out">最近的藥局在哪裡？</div>
+      <div class="mic-area">
+        <div class="mic-circle">🎙</div>
+        <div class="mic-label">HOLD TO SPEAK</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-tag">@mina0717 · Made in Taiwan 🇹🇼</div>
+</body>
+</html>

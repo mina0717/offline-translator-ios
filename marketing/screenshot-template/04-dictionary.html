@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head><meta charset="UTF-8"><title>Screenshot 04 — Dictionary</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1290px; height: 2796px; overflow: hidden; font-family: "Noto Sans TC", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif; }
+  body {
+    background: linear-gradient(180deg, #0B1438 0%, #050A24 100%);
+    color: #fff;
+    padding: 140px 100px 100px;
+    display: flex; flex-direction: column;
+  }
+  .brand { font-size: 28px; font-weight: 500; letter-spacing: 0.2em; color: #5EE2D7; text-transform: uppercase; margin-bottom: 48px; }
+  h1 { font-size: 112px; font-weight: 900; line-height: 1.0; letter-spacing: -0.03em; margin-bottom: 28px; }
+  h1 .hl { color: #5EE2D7; }
+  h1 .hl2 { color: #FF6B6B; }
+  .sub { font-size: 38px; line-height: 1.4; color: #d2d2d7; margin-bottom: 80px; font-weight: 500; }
+
+  .phone-mock {
+    flex: 1;
+    background: #000;
+    border-radius: 72px;
+    border: 12px solid #1a1a1a;
+    box-shadow: 0 60px 120px rgba(0,0,0,0.6);
+    overflow: hidden;
+  }
+  .phone-screen {
+    width: 100%; height: 100%;
+    background: #fff;
+    padding: 60px 48px;
+    color: #0B1438;
+    display: flex; flex-direction: column;
+  }
+  .search-bar {
+    background: #f5f5f7;
+    border-radius: 20px;
+    padding: 24px 32px;
+    display: flex; align-items: center; gap: 20px;
+    font-size: 34px;
+    margin-bottom: 32px;
+  }
+  .search-bar .q { flex: 1; color: #0B1438; font-weight: 700; }
+  .stat-badge {
+    background: linear-gradient(135deg, #5EE2D7, #00A6B4);
+    color: #fff;
+    display: inline-block;
+    padding: 8px 20px;
+    border-radius: 999px;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 28px;
+    letter-spacing: 0.05em;
+  }
+  .entry { margin-bottom: 28px; }
+  .entry .word { font-size: 72px; font-weight: 900; color: #0B1438; margin-bottom: 6px; }
+  .entry .phonetic { font-size: 28px; color: #8A8A93; margin-bottom: 16px; }
+  .pos-row { display: flex; gap: 12px; margin-bottom: 16px; }
+  .pos { background: rgba(94,226,215,0.15); color: #00A6B4; padding: 6px 16px; border-radius: 10px; font-size: 22px; font-weight: 700; }
+  .def { font-size: 32px; color: #0B1438; line-height: 1.5; margin-bottom: 10px; }
+  .example { font-size: 26px; color: #6E6E73; line-height: 1.5; font-style: italic; padding-left: 20px; border-left: 3px solid #5EE2D7; }
+
+  .save-btn {
+    margin-top: auto;
+    background: linear-gradient(135deg, #FF6B6B, #FFB07C);
+    color: #fff;
+    padding: 28px;
+    border-radius: 24px;
+    font-size: 36px; font-weight: 900;
+    text-align: center;
+    letter-spacing: 0.1em;
+  }
+
+  .footer-tag { margin-top: 60px; font-size: 28px; color: #6e6e73; letter-spacing: 0.1em; text-align: center; }
+</style>
+</head>
+<body>
+  <div class="brand">04 · Dictionary</div>
+  <h1>17<span class="hl2">萬詞</span>，離線<span class="hl">秒查</span>。</h1>
+  <div class="sub">詞性 · 例句 · 記憶排序<br>一鍵收藏到詞彙本</div>
+
+  <div class="phone-mock">
+    <div class="phone-screen">
+      <div class="search-bar">🔍<span class="q">ephemeral</span>× </div>
+      <div class="stat-badge">● 170K · 全離線</div>
+      <div class="entry">
+        <div class="word">ephemeral</div>
+        <div class="phonetic">/ɪˈfem.ər.əl/</div>
+        <div class="pos-row">
+          <span class="pos">adj.</span>
+        </div>
+        <div class="def">短暫的；稍縱即逝的</div>
+        <div class="example">"Beauty is ephemeral, but art endures."</div>
+      </div>
+      <div class="save-btn">💾 收藏到詞彙本</div>
+    </div>
+  </div>
+
+  <div class="footer-tag">@mina0717 · Made in Taiwan 🇹🇼</div>
+</body>
+</html>

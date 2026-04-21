@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy · Offline Translator 離線翻譯</title>
+<meta name="description" content="Offline Translator is an on-device translation app. We do not collect, transmit, or store any personal data.">
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1d1d1f;
+    --muted: #6e6e73;
+    --accent: #0066cc;
+    --border: #d2d2d7;
+    --card: #f5f5f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000;
+      --fg: #f5f5f7;
+      --muted: #a1a1a6;
+      --accent: #2997ff;
+      --border: #3a3a3c;
+      --card: #1c1c1e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 24px 96px; }
+  header { margin-bottom: 32px; }
+  h1 { font-size: 2.2rem; font-weight: 700; margin: 0 0 8px; letter-spacing: -0.02em; }
+  .sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 24px; }
+  .lang-switch {
+    display: inline-flex;
+    background: var(--card);
+    border-radius: 9999px;
+    padding: 4px;
+    margin-bottom: 32px;
+  }
+  .lang-switch button {
+    border: 0;
+    background: transparent;
+    color: var(--fg);
+    padding: 8px 18px;
+    border-radius: 9999px;
+    font-size: 0.92rem;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .lang-switch button.active {
+    background: var(--accent);
+    color: #fff;
+  }
+  h2 { font-size: 1.35rem; margin: 40px 0 12px; font-weight: 600; letter-spacing: -0.01em; }
+  h3 { font-size: 1.05rem; margin: 24px 0 8px; font-weight: 600; }
+  p { margin: 0 0 14px; color: var(--fg); }
+  ul { padding-left: 22px; margin: 0 0 16px; }
+  li { margin-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0 20px; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-weight: 600; background: var(--card); }
+  strong { font-weight: 600; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { background: var(--card); padding: 2px 6px; border-radius: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.9em; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 48px 0; }
+  footer { color: var(--muted); font-size: 0.85rem; text-align: center; margin-top: 48px; }
+  .lang { display: none; }
+  .lang.active { display: block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Privacy Policy / 隱私權政策</h1>
+    <div class="sub">
+      <strong>Effective / 生效：</strong> 2026-04-21 · <strong>Updated / 更新：</strong> 2026-04-21
+    </div>
+    <div class="lang-switch" role="tablist">
+      <button id="btn-en" class="active" onclick="setLang('en')">English</button>
+      <button id="btn-zh" onclick="setLang('zh')">繁體中文</button>
+    </div>
+  </header>
+
+  <!-- English -->
+  <section id="lang-en" class="lang active">
+    <h2>1. Summary</h2>
+    <p>Offline Translator ("the App", "we") is an <strong>on-device translation app</strong>. We do <strong>not</strong> operate any server, run any analytics, show any advertising, or share any data with third parties. Everything happens on your device.</p>
+
+    <h2>2. Data We Do NOT Collect</h2>
+    <ul>
+      <li>Your identity, name, email address, phone number, or any account information</li>
+      <li>Your device identifier (IDFA/IDFV), IP address, or location</li>
+      <li>The text, speech, or images you translate</li>
+      <li>Your vocabulary list, translation history, or app usage data</li>
+      <li>Analytics, crash reports, or telemetry</li>
+      <li>Advertising data</li>
+    </ul>
+    <p><strong>We have no backend server.</strong> There is no account to sign up for. There is no login.</p>
+
+    <h2>3. Permissions the App Requests</h2>
+    <table>
+      <thead><tr><th>Permission</th><th>Purpose</th><th>Data Flow</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Microphone</strong></td><td>Record your voice for speech translation</td><td>Processed on-device by Apple's Speech framework. Nothing is uploaded.</td></tr>
+        <tr><td><strong>Speech Recognition</strong></td><td>Convert speech to text</td><td>Processed on-device when possible. If iOS falls back to Apple's server-side recognition, Apple's own privacy policy applies — we never see the audio or transcript.</td></tr>
+        <tr><td><strong>Camera</strong></td><td>Capture an image for photo translation (OCR)</td><td>Processed on-device by Apple's Vision framework. Not saved outside temporary memory. Not transmitted.</td></tr>
+        <tr><td><strong>Photo Library</strong></td><td>Let you pick an image for OCR</td><td>Only the single image you explicitly select is read. We do not scan your library.</td></tr>
+      </tbody>
+    </table>
+    <p>You can revoke any permission at any time via <strong>iOS Settings → Offline Translator</strong>.</p>
+
+    <h2>4. Data Stored Locally on Your Device</h2>
+    <p>The App stores the following <strong>only on your device</strong>, using Apple's SwiftData:</p>
+    <ul>
+      <li><strong>Saved vocabulary entries</strong> — words or phrases you tap "Save" on</li>
+      <li><strong>Translation history</strong> — recent translations</li>
+      <li><strong>Language preferences</strong> — source / target / UI language</li>
+    </ul>
+    <p>This data never leaves your device. It is included in your regular iCloud device backup if enabled (encrypted and managed by Apple). To delete all of this data, uninstall the App.</p>
+
+    <h2>5. Apple Translation Language Packs</h2>
+    <p>The App uses Apple's Translation framework, which downloads language model files from Apple's servers the first time you use a language. This download is handled by iOS itself — we do not see or intercept it. Apple's privacy policy governs this transfer.</p>
+
+    <h2>6. Share Extension</h2>
+    <p>Text shared to Offline Translator from another app via the iOS Share Sheet is passed directly to the App by iOS and translated on-device. It is not stored unless you explicitly tap "Save".</p>
+
+    <h2>7. Siri and App Intents</h2>
+    <p>If you use Siri to invoke "TranslateText" or "TranslateClipboard" shortcuts, the text is processed on-device by the Translation framework. Siri itself is governed by Apple's privacy policy.</p>
+
+    <h2>8. Third-Party Services</h2>
+    <p><strong>None.</strong> The App integrates zero third-party SDKs, analytics libraries, advertising networks, crash reporters, or tracking tools. The only frameworks used are Apple's own: Translation, Speech, Vision, AVFoundation, SwiftData, TipKit, App Intents.</p>
+
+    <h2>9. Children's Privacy</h2>
+    <p>The App does not target children under 13 and does not knowingly collect any data from anyone. It is safe for use by all ages. The App Store age rating is 4+.</p>
+
+    <h2>10. Your Rights</h2>
+    <p>Because we do not collect any personal data, traditional data-subject requests (access, deletion, export, rectification) are not applicable — there is nothing on our side to access, delete, export, or correct. To delete data stored on your device, uninstall the App.</p>
+
+    <h2>11. Changes to This Policy</h2>
+    <p>If we ever change this policy, we will update the "Last updated" date at the top and (for material changes) notify users in the next App update's release notes.</p>
+
+    <h2>12. Contact</h2>
+    <ul>
+      <li><strong>Email:</strong> <a href="mailto:lb0018575@gmail.com">lb0018575@gmail.com</a></li>
+      <li><strong>GitHub Issues:</strong> <a href="https://github.com/mina0717/offline-translator-ios/issues">github.com/mina0717/offline-translator-ios/issues</a></li>
+    </ul>
+  </section>
+
+  <!-- Traditional Chinese -->
+  <section id="lang-zh" class="lang">
+    <h2>1. 摘要</h2>
+    <p>「離線翻譯」（以下稱「本 App」）是一款 <strong>完全在裝置端運作</strong> 的翻譯 App。我們 <strong>沒有</strong> 架任何伺服器、沒有任何分析追蹤、沒有任何廣告、也不會將資料分享給任何第三方。所有處理都在你的裝置上完成。</p>
+
+    <h2>2. 我們「不會」蒐集的資料</h2>
+    <ul>
+      <li>你的身分、姓名、Email、電話號碼或任何帳號資訊</li>
+      <li>裝置識別碼（IDFA/IDFV）、IP 位址、地理位置</li>
+      <li>你翻譯的任何文字、語音或圖片</li>
+      <li>你的生詞本、翻譯記錄、使用行為資料</li>
+      <li>分析、當機報告、遙測資料</li>
+      <li>廣告資料</li>
+    </ul>
+    <p><strong>我們沒有後端伺服器，</strong> 也不需要註冊或登入。</p>
+
+    <h2>3. App 請求的權限</h2>
+    <table>
+      <thead><tr><th>權限</th><th>用途</th><th>資料流向</th></tr></thead>
+      <tbody>
+        <tr><td><strong>麥克風</strong></td><td>錄音，用於語音翻譯</td><td>音訊由 Apple Speech 框架在裝置端處理，不會上傳。</td></tr>
+        <tr><td><strong>語音辨識</strong></td><td>將語音轉成文字</td><td>優先在裝置端處理。若 iOS 必須使用 Apple 雲端辨識，適用 Apple 隱私政策 — 我們看不到音訊或文字。</td></tr>
+        <tr><td><strong>相機</strong></td><td>拍照做圖片翻譯（OCR）</td><td>圖片由 Apple Vision 框架在裝置端處理，不會存檔也不會傳輸。</td></tr>
+        <tr><td><strong>相簿</strong></td><td>讓你選一張圖片做 OCR</td><td>只讀取你明確選取的那一張，不會掃描整個相簿。</td></tr>
+      </tbody>
+    </table>
+    <p>你可以隨時到 <strong>iOS 設定 → 離線翻譯</strong> 撤回任何權限。</p>
+
+    <h2>4. 儲存在你裝置上的資料</h2>
+    <p>以下資料 <strong>只存在於你的裝置上</strong>，透過 Apple SwiftData 本機儲存：</p>
+    <ul>
+      <li><strong>生詞本</strong> — 你點「儲存」的單字或片語</li>
+      <li><strong>翻譯記錄</strong> — 最近的翻譯</li>
+      <li><strong>語言偏好</strong> — 來源／目標／介面語言</li>
+    </ul>
+    <p>這些資料不會離開你的裝置。若你有開啟 iCloud 裝置備份，會一併被備份（由 Apple 加密管理，與我們無關）。要刪除所有資料，請解除安裝本 App。</p>
+
+    <h2>5. Apple 翻譯語言包</h2>
+    <p>本 App 使用 Apple Translation 框架，第一次使用某語言時，iOS 會向 Apple 伺服器下載該語言模型檔。此下載由 iOS 自行處理 — 我們看不到也攔截不到。該傳輸適用 Apple 隱私政策。</p>
+
+    <h2>6. 分享延伸</h2>
+    <p>你從其他 App 透過 iOS 分享選單傳給「離線翻譯」的文字，會由 iOS 直接交給本 App 在裝置端翻譯。除非你明確點「儲存」，否則不會保留。</p>
+
+    <h2>7. Siri 與 App Intents</h2>
+    <p>使用 Siri 呼叫「翻譯文字」或「翻譯剪貼簿」捷徑時，文字由 Translation 框架在裝置端處理。Siri 本身適用 Apple 隱私政策。</p>
+
+    <h2>8. 第三方服務</h2>
+    <p><strong>一律沒有。</strong> 本 App 未整合任何第三方 SDK、分析工具、廣告網路、當機回報或追蹤工具。唯一使用的框架皆為 Apple 官方：Translation、Speech、Vision、AVFoundation、SwiftData、TipKit、App Intents。</p>
+
+    <h2>9. 兒童隱私</h2>
+    <p>本 App 不以 13 歲以下兒童為目標對象，且不會蒐集任何人的資料。所有年齡皆可安全使用，App Store 年齡分級為 4+。</p>
+
+    <h2>10. 你的權利</h2>
+    <p>由於我們不蒐集任何個人資料，傳統的資料主體請求（存取、刪除、匯出、更正）多半不適用。要刪除裝置上的資料，請解除安裝本 App。</p>
+
+    <h2>11. 政策變更</h2>
+    <p>若本政策有任何變更，我們會更新本頁頂端的「最後更新」日期，重大變更會在下個 App 版本的更新說明中告知。</p>
+
+    <h2>12. 聯絡我們</h2>
+    <ul>
+      <li><strong>Email：</strong> <a href="mailto:lb0018575@gmail.com">lb0018575@gmail.com</a></li>
+      <li><strong>GitHub Issues：</strong> <a href="https://github.com/mina0717/offline-translator-ios/issues">github.com/mina0717/offline-translator-ios/issues</a></li>
+    </ul>
+  </section>
+
+  <footer>
+    © 2026 Offline Translator / 離線翻譯
+  </footer>
+</div>
+
+<script>
+  function setLang(l) {
+    const en = document.getElementById('lang-en');
+    const zh = document.getElementById('lang-zh');
+    const btnEn = document.getElementById('btn-en');
+    const btnZh = document.getElementById('btn-zh');
+    if (l === 'en') {
+      en.classList.add('active'); zh.classList.remove('active');
+      btnEn.classList.add('active'); btnZh.classList.remove('active');
+      document.documentElement.lang = 'en';
+    } else {
+      zh.classList.add('active'); en.classList.remove('active');
+      btnZh.classList.add('active'); btnEn.classList.remove('active');
+      document.documentElement.lang = 'zh-Hant';
+    }
+    history.replaceState(null, '', '#' + l);
+  }
+  // Auto-detect from URL hash or browser
+  (function() {
+    const hash = (location.hash || '').replace('#', '');
+    if (hash === 'zh' || hash === 'en') { setLang(hash); return; }
+    const nav = (navigator.language || '').toLowerCase();
+    if (nav.startsWith('zh')) setLang('zh');
+  })();
+</script>
+</body>
+</html>

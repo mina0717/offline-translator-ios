@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head><meta charset="UTF-8"><title>Screenshot 05 — Privacy</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1290px; height: 2796px; overflow: hidden; font-family: "Noto Sans TC", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif; }
+  body {
+    background: linear-gradient(180deg, #0B1438 0%, #050A24 100%);
+    color: #fff;
+    padding: 160px 100px 120px;
+    display: flex; flex-direction: column;
+  }
+  .brand { font-size: 32px; font-weight: 500; letter-spacing: 0.2em; color: #5EE2D7; text-transform: uppercase; margin-bottom: 56px; }
+  h1 { font-size: 112px; font-weight: 900; line-height: 1.0; letter-spacing: -0.03em; margin-bottom: 48px; }
+  h1 .hl { color: #5EE2D7; }
+  .sub { font-size: 42px; line-height: 1.4; color: #d2d2d7; margin-bottom: 100px; font-weight: 500; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    margin-bottom: 100px;
+  }
+  .stat {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(94,226,215,0.3);
+    border-radius: 36px;
+    padding: 80px 56px;
+    text-align: center;
+  }
+  .stat.primary { grid-column: 1 / -1; }
+  .stat .num { font-size: 172px; font-weight: 900; line-height: 1.0; margin-bottom: 16px; letter-spacing: -0.04em; }
+  .stat .num.cy { color: #5EE2D7; }
+  .stat .num.co { color: #FF6B6B; }
+  .stat .label { font-size: 32px; color: #a1a1a6; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; }
+  .stat .desc { font-size: 28px; color: #d2d2d7; margin-top: 12px; }
+
+  .cta {
+    margin-top: auto;
+    background: linear-gradient(135deg, #5EE2D7 0%, #FF6B6B 100%);
+    color: #0B1438;
+    padding: 56px;
+    border-radius: 36px;
+    font-size: 56px; font-weight: 900;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+  .cta .sub-cta { font-size: 28px; font-weight: 500; letter-spacing: 0.1em; margin-top: 10px; opacity: 0.7; }
+
+  .footer-tag { margin-top: 40px; font-size: 28px; color: #6e6e73; letter-spacing: 0.1em; text-align: center; }
+</style>
+</head>
+<body>
+  <div class="brand">05 · Privacy First</div>
+  <h1>你的話，<br>不會<span class="hl">離開</span>手機。</h1>
+  <div class="sub">零追蹤 · 零廣告 · 零伺服器<br>100% 離線運算</div>
+
+  <div class="stats">
+    <div class="stat primary">
+      <div class="num cy">0</div>
+      <div class="label">資料收集</div>
+      <div class="desc">Zero data collection</div>
+    </div>
+    <div class="stat">
+      <div class="num cy">100%</div>
+      <div class="label">離線</div>
+    </div>
+    <div class="stat">
+      <div class="num co">17萬</div>
+      <div class="label">離線詞庫</div>
+    </div>
+  </div>
+
+  <div class="cta">
+    立即下載
+    <div class="sub-cta">App Store · 免費 · 無內購 · 無廣告</div>
+  </div>
+
+  <div class="footer-tag">@mina0717 · Made in Taiwan 🇹🇼</div>
+</body>
+</html>

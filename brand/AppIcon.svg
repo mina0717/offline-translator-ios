@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Offline Translator · App Icon
+  1024x1024, Apple HIG compliant (no transparency — iOS masks corners automatically)
+
+  Concept:
+  - Deep-night indigo background evokes "offline" and privacy
+  - Two overlapping speech-bubble shapes (teal + coral) read as bidirectional translation
+  - The bubbles' overlap forms a subtle highlight — communication meeting in the middle
+  - No letters, works at any scale, distinctive in the Home Screen grid
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Background: deep indigo to navy -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0B1438"/>
+      <stop offset="1" stop-color="#050A24"/>
+    </linearGradient>
+
+    <!-- Back bubble: cool teal gradient -->
+    <linearGradient id="bubbleA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5EE2D7"/>
+      <stop offset="1" stop-color="#00A6B4"/>
+    </linearGradient>
+
+    <!-- Front bubble: warm coral gradient -->
+    <linearGradient id="bubbleB" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFB07C"/>
+      <stop offset="1" stop-color="#FF6B6B"/>
+    </linearGradient>
+
+    <!-- Soft inner glow on each bubble -->
+    <radialGradient id="gloss" cx="0.3" cy="0.25" r="0.8">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="0.6" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Shadow under bubbles -->
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+  </defs>
+
+  <!-- Background fills entire 1024 canvas; iOS will round the corners -->
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- Subtle star-speck "offline / night" texture -->
+  <g fill="#ffffff" opacity="0.12">
+    <circle cx="140" cy="180" r="2.5"/>
+    <circle cx="880" cy="160" r="1.8"/>
+    <circle cx="800" cy="880" r="2.2"/>
+    <circle cx="180" cy="860" r="1.6"/>
+    <circle cx="520" cy="120" r="1.4"/>
+    <circle cx="910" cy="520" r="1.9"/>
+    <circle cx="110" cy="520" r="1.5"/>
+    <circle cx="620" cy="920" r="1.3"/>
+  </g>
+
+  <!-- Back bubble (teal) with shadow -->
+  <g>
+    <path
+      d="M 330 290
+         Q 330 220 400 220
+         L 720 220
+         Q 790 220 790 290
+         L 790 470
+         Q 790 540 720 540
+         L 500 540
+         L 430 610
+         L 430 540
+         L 400 540
+         Q 330 540 330 470
+         Z"
+      fill="#000000" opacity="0.25" filter="url(#softShadow)" transform="translate(0 24)"/>
+    <path
+      d="M 330 290
+         Q 330 220 400 220
+         L 720 220
+         Q 790 220 790 290
+         L 790 470
+         Q 790 540 720 540
+         L 500 540
+         L 430 610
+         L 430 540
+         L 400 540
+         Q 330 540 330 470
+         Z"
+      fill="url(#bubbleA)"/>
+    <path
+      d="M 330 290
+         Q 330 220 400 220
+         L 720 220
+         Q 790 220 790 290
+         L 790 470
+         Q 790 540 720 540
+         L 500 540
+         L 430 610
+         L 430 540
+         L 400 540
+         Q 330 540 330 470
+         Z"
+      fill="url(#gloss)"/>
+  </g>
+
+  <!-- Front bubble (coral), mirrored, slightly overlapping -->
+  <g>
+    <path
+      d="M 694 554
+         Q 694 484 624 484
+         L 304 484
+         Q 234 484 234 554
+         L 234 734
+         Q 234 804 304 804
+         L 524 804
+         L 594 874
+         L 594 804
+         L 624 804
+         Q 694 804 694 734
+         Z"
+      fill="#000000" opacity="0.25" filter="url(#softShadow)" transform="translate(0 24)"/>
+    <path
+      d="M 694 554
+         Q 694 484 624 484
+         L 304 484
+         Q 234 484 234 554
+         L 234 734
+         Q 234 804 304 804
+         L 524 804
+         L 594 874
+         L 594 804
+         L 624 804
+         Q 694 804 694 734
+         Z"
+      fill="url(#bubbleB)"/>
+    <path
+      d="M 694 554
+         Q 694 484 624 484
+         L 304 484
+         Q 234 484 234 554
+         L 234 734
+         Q 234 804 304 804
+         L 524 804
+         L 594 874
+         L 594 804
+         L 624 804
+         Q 694 804 694 734
+         Z"
+      fill="url(#gloss)"/>
+  </g>
+
+  <!-- Central connection dots — three dots reading as conversation / translation pulse -->
+  <g fill="#ffffff">
+    <circle cx="440" cy="378" r="22"/>
+    <circle cx="512" cy="378" r="22"/>
+    <circle cx="584" cy="378" r="22"/>
+  </g>
+  <g fill="#0B1438">
+    <circle cx="410" cy="644" r="20"/>
+    <circle cx="478" cy="644" r="20"/>
+    <circle cx="546" cy="644" r="20"/>
+  </g>
+</svg>
