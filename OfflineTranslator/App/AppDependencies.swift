@@ -17,6 +17,8 @@ final class AppDependencies: ObservableObject {
     let modelContainer: ModelContainer
     let historyRepository: HistoryRepository
     let languagePackRepository: LanguagePackRepository
+    let vocabularyRepository: VocabularyRepository
+    let dictionaryService: DictionaryLookupService
 
     // Use Cases
     let translateTextUseCase: TranslateTextUseCase
@@ -30,6 +32,7 @@ final class AppDependencies: ObservableObject {
     static func makeDefault() -> AppDependencies {
         let container = SwiftDataContainer.shared
         let history = SwiftDataHistoryRepository(container: container)
+        let vocab = SwiftDataVocabularyRepository(container: container)
 
         let mt  = AppleMTService()
         let ocr = VisionOCRService()
@@ -49,6 +52,8 @@ final class AppDependencies: ObservableObject {
             modelContainer: container,
             historyRepository: history,
             languagePackRepository: packRepo,
+            vocabularyRepository: vocab,
+            dictionaryService: DictionaryFallbackService.shared,
             translateTextUseCase: DefaultTranslateTextUseCase(
                 mtService: mt, history: history
             ),
@@ -67,6 +72,7 @@ final class AppDependencies: ObservableObject {
     static func makeMock() -> AppDependencies {
         let container = (try? SwiftDataContainer.makeInMemory()) ?? SwiftDataContainer.shared
         let history = SwiftDataHistoryRepository(container: container)
+        let vocab = InMemoryVocabularyRepository()
 
         let mt  = MTServiceMock()
         let ocr = OCRServiceMock()
@@ -86,6 +92,8 @@ final class AppDependencies: ObservableObject {
             modelContainer: container,
             historyRepository: history,
             languagePackRepository: packRepo,
+            vocabularyRepository: vocab,
+            dictionaryService: DictionaryFallbackService.shared,
             translateTextUseCase: DefaultTranslateTextUseCase(
                 mtService: mt, history: history
             ),
@@ -110,6 +118,8 @@ final class AppDependencies: ObservableObject {
         modelContainer: ModelContainer,
         historyRepository: HistoryRepository,
         languagePackRepository: LanguagePackRepository,
+        vocabularyRepository: VocabularyRepository,
+        dictionaryService: DictionaryLookupService,
         translateTextUseCase: TranslateTextUseCase,
         speechTranslateUseCase: SpeechTranslateUseCase,
         photoTranslateUseCase: PhotoTranslateUseCase,
@@ -123,6 +133,8 @@ final class AppDependencies: ObservableObject {
         self.modelContainer = modelContainer
         self.historyRepository = historyRepository
         self.languagePackRepository = languagePackRepository
+        self.vocabularyRepository = vocabularyRepository
+        self.dictionaryService = dictionaryService
         self.translateTextUseCase = translateTextUseCase
         self.speechTranslateUseCase = speechTranslateUseCase
         self.photoTranslateUseCase = photoTranslateUseCase
