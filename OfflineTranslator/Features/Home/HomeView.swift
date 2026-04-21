@@ -3,7 +3,7 @@ import SwiftUI
 /// 首頁：四個主入口（文字 / 語音 / 拍照 / 語言包）+ 歷史紀錄入口。
 struct HomeView: View {
     enum Destination: Hashable {
-        case text, speech, photo, languagePack, history
+        case text, speech, photo, languagePack, history, vocabulary
     }
 
     var body: some View {
@@ -29,6 +29,28 @@ struct HomeView: View {
                     HomeTile(icon: "camera.fill",      title: "拍照翻譯",  subtitle: "辨識圖片文字", destination: .photo)
                     HomeTile(icon: "arrow.down.circle.fill", title: "語言包", subtitle: "離線管理",   destination: .languagePack)
                 }
+
+                // v1.1：生詞本入口
+                NavigationLink(value: Destination.vocabulary) {
+                    HStack {
+                        Image(systemName: "star.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(Theme.Colors.accent)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("字典生詞")
+                                .font(Theme.Font.headline)
+                                .foregroundStyle(Theme.Colors.textPrimary)
+                            Text("儲存常用詞")
+                                .font(Theme.Font.caption)
+                                .foregroundStyle(Theme.Colors.textSecondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
+                    .glassCard()
+                }
+                .buttonStyle(.plain)
 
                 NavigationLink(value: Destination.history) {
                     HStack {
@@ -56,6 +78,7 @@ struct HomeView: View {
             case .photo:        PhotoTranslationView()
             case .languagePack: LanguagePackView()
             case .history:      HistoryView()
+            case .vocabulary:   VocabularyView()
             }
         }
         .navigationBarTitleDisplayMode(.inline)
