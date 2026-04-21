@@ -1,1 +1,201 @@
+name: iOS Release (TestFlight)
 
+# 雲端 Mac 自動 archive + 上傳 TestFlight，完全不用本地 Mac。
+# 觸發方式：
+#   1. Actions 頁手動按 "Run workflow"
+#   2. git tag v1.1.0 && git push --tags（自動跑）
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: "Build number (CFBundleVersion)，留空則用 GitHub run number"
+        required: false
+        type: string
+      marketing_version:
+        description: "Marketing version (CFBundleShortVersionString)，例：1.1.0"
+        required: false
+        default: "1.1.0"
+        type: string
+  push:
+    tags:
+      - "v*"
+
+env:
+  SCHEME: OfflineTranslator
+  PROJECT: OfflineTranslator.xcodeproj
+  CONFIGURATION: Release
+  XCODE_VERSION: "16.2"
+
+jobs:
+  build:
+    name: Build & Upload to TestFlight
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+      # ────────────────────────────────────────────────────────────
+      # 1. 取得程式碼
+      # ────────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ────────────────────────────────────────────────────────────
+      # 2. 選 Xcode 版本（macos-15 runner 內建多版）
+      # ────────────────────────────────────────────────────────────
+      - name: Select Xcode
+        run: sudo xcode-select -s "/Applications/Xcode_${{ env.XCODE_VERSION }}.app"
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      # ────────────────────────────────────────────────────────────
+      # 3. 裝 XcodeGen 並產生 .xcodeproj
+      # ────────────────────────────────────────────────────────────
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Inject DEVELOPMENT_TEAM
+        run: |
+          cat > Config.xcconfig <<EOF
+          DEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }}
+          EOF
+          # project.yml 的 DEVELOPMENT_TEAM = $(DEVELOPMENT_TEAM) 會讀到這裡
+          echo "DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }}" >> $GITHUB_ENV
+
+      - name: Generate Xcode project
+        env:
+          DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
+        run: xcodegen generate
+
+      # ────────────────────────────────────────────────────────────
+      # 4. 決定 build number / marketing version
+      # ────────────────────────────────────────────────────────────
+      - name: Resolve version numbers
+        id: versions
+        run: |
+          BUILD_NO="${{ github.event.inputs.build_number }}"
+          if [ -z "$BUILD_NO" ]; then
+            BUILD_NO="${{ github.run_number }}"
+          fi
+          MKT_VER="${{ github.event.inputs.marketing_version }}"
+          if [ -z "$MKT_VER" ]; then
+            # 從 tag 解析，如 refs/tags/v1.1.0 → 1.1.0
+            MKT_VER="${GITHUB_REF_NAME#v}"
+            [ -z "$MKT_VER" ] && MKT_VER="1.1.0"
+          fi
+          echo "build_number=$BUILD_NO" >> $GITHUB_OUTPUT
+          echo "marketing_version=$MKT_VER" >> $GITHUB_OUTPUT
+          echo "✅ Build $BUILD_NO / Version $MKT_VER"
+
+      # ────────────────────────────────────────────────────────────
+      # 5. 寫入 App Store Connect API key
+      # ────────────────────────────────────────────────────────────
+      - name: Setup App Store Connect API key
+        env:
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8"
+          echo "$API_KEY_BASE64" | base64 --decode > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          echo "API_KEY_PATH=$KEY_PATH" >> $GITHUB_ENV
+
+      # ────────────────────────────────────────────────────────────
+      # 6. Archive（含 -allowProvisioningUpdates，自動�i cert + profile）
+      # ────────────────────────────────────────────────────────────
+      - name: Archive
+        run: |
+          xcodebuild \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration "$CONFIGURATION" \
+            -destination "generic/platform=iOS" \
+            -archivePath "$RUNNER_TEMP/$SCHEME.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$API_KEY_PATH" \
+            -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}" \
+            CURRENT_PROJECT_VERSION="${{ steps.versions.outputs.build_number }}" \
+            MARKETING_VERSION="${{ steps.versions.outputs.marketing_version }}" \
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
+            archive | xcpretty && exit ${PIPESTATUS[0]}
+
+      # ────────────────────────────────────────────────────────────
+      # 7. Export IPA (app-store)
+      # ────────────────────────────────────────────────────────────
+      - name: Create ExportOptions.plist
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>teamID</key>
+            <string>${{ secrets.APPLE_TEAM_ID }}</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>destination</key>
+            <string>export</string>
+            <key>stripSwiftSymbols</key>
+            <true/>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Export IPA
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/$SCHEME.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$API_KEY_PATH" \
+            -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}"
+
+      # ────────────────────────────────────────────────────────────
+      # 8. 上傳 IPA 到 TestFlight
+      # ────────────────────────────────────────────────────────────
+      - name: Upload to TestFlight
+        run: |
+          IPA_FILE=$(find "$RUNNER_TEMP/export" -name "*.ipa" | head -1)
+          echo "Uploading: $IPA_FILE"
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$IPA_FILE" \
+            --apiKey "${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}" \
+            --apiIssuer "${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}"
+
+      # ────────────────────────────────────────────────────────────
+      # 9. 保存 IPA + xcarchive 供下載（方便出包失敗 debug）
+      # ────────────────────────────────────────────────────────────
+      - name: Upload IPA as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: OfflineTranslator-IPA-${{ steps.versions.outputs.marketing_version }}-build${{ steps.versions.outputs.build_number }}
+          path: ${{ runner.temp }}/export/*.ipa
+          retention-days: 14
+
+      - name: Upload xcarchive on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: OfflineTranslator-xcarchive-failed
+          path: ${{ runner.temp }}/*.xcarchive
+          retention-days: 7
+
+      # ────────────────────────────────────────────────────────────
+      # 10. 清理（保護機密）
+      # ────────────────────────────────────────────────────────────
+      - name: Cleanup secrets
+        if: always()
+        run: |
+          rm -rf ~/.appstoreconnect/private_keys
