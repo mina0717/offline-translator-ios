@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Offline Translator · Private, on-device translation for iPhone &amp; iPad</title>
+<meta name="description" content="Offline Translator is a privacy-first translator for English and Traditional Chinese. On-device. Zero servers. Zero tracking. Zero ads.">
+<meta property="og:title" content="Offline Translator · 離線翻譯">
+<meta property="og:description" content="Private, on-device translation. Voice, OCR, dictionary — all offline.">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230B1438'/><rect x='28' y='20' width='54' height='36' rx='8' fill='%235EE2D7'/><rect x='18' y='44' width='54' height='36' rx='8' fill='%23FF6B6B'/></svg>">
+
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-alt: #f5f5f7;
+    --fg: #1d1d1f;
+    --fg-muted: #6e6e73;
+    --border: #d2d2d7;
+    --accent-cool: #00A6B4;
+    --accent-warm: #FF6B6B;
+    --night: #0B1438;
+    --night-deep: #050A24;
+    --card: #ffffff;
+    --shadow: 0 4px 24px rgba(11, 20, 56, 0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0B1438;
+      --bg-alt: #0E1A4A;
+      --fg: #F5F5F7;
+      --fg-muted: #a1a1a6;
+      --border: #1E2A5E;
+      --card: #0E1A4A;
+      --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  img, svg { max-width: 100%; display: block; }
+  a { color: var(--accent-cool); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Nav */
+  nav {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  @media (prefers-color-scheme: dark) {
+    nav { background: rgba(11,20,56,0.85); }
+  }
+  .nav-inner { max-width: 1120px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 1.02rem; color: var(--fg); }
+  .logo svg { width: 32px; height: 32px; border-radius: 7px; }
+  .nav-right { display: flex; gap: 20px; align-items: center; font-size: 0.92rem; }
+  .nav-right a { color: var(--fg-muted); }
+  .nav-right a:hover { color: var(--fg); text-decoration: none; }
+  .lang-toggle { background: var(--bg-alt); border-radius: 9999px; padding: 3px; display: inline-flex; }
+  .lang-toggle button { border: 0; background: transparent; color: var(--fg); padding: 6px 12px; border-radius: 9999px; font-size: 0.85rem; cursor: pointer; font-weight: 500; }
+  .lang-toggle button.active { background: var(--night); color: #fff; }
+
+  /* Hero */
+  .hero { max-width: 1120px; margin: 0 auto; padding: 80px 24px 48px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: center; }
+  @media (max-width: 820px) { .hero { grid-template-columns: 1fr; padding: 48px 24px; } }
+  .hero h1 { font-size: clamp(2rem, 5vw, 3.6rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 700; margin-bottom: 20px; }
+  .hero .gradient { background: linear-gradient(120deg, var(--accent-cool) 0%, var(--accent-warm) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; }
+  .hero p.lede { font-size: 1.2rem; color: var(--fg-muted); margin-bottom: 28px; max-width: 540px; }
+  .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 24px; border-radius: 12px; font-size: 0.98rem; font-weight: 500; transition: transform 0.1s, box-shadow 0.2s; border: 0; cursor: pointer; }
+  .btn-primary { background: var(--night); color: #fff; }
+  .btn-primary:hover { background: var(--night-deep); text-decoration: none; transform: translateY(-1px); }
+  @media (prefers-color-scheme: dark) { .btn-primary { background: #fff; color: var(--night); } .btn-primary:hover { background: #F5F5F7; } }
+  .btn-ghost { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--bg-alt); text-decoration: none; }
+  .hero-icon-wrap { display: flex; justify-content: center; align-items: center; }
+  .hero-icon { width: 280px; height: 280px; border-radius: 64px; box-shadow: 0 24px 60px rgba(11,20,56,0.3); }
+
+  /* Sections */
+  section.block { max-width: 1120px; margin: 0 auto; padding: 64px 24px; }
+  section.block.alt { background: var(--bg-alt); max-width: 100%; }
+  section.block.alt .inner { max-width: 1120px; margin: 0 auto; }
+  h2.section-title { font-size: clamp(1.6rem, 3.5vw, 2.4rem); letter-spacing: -0.01em; font-weight: 700; margin-bottom: 12px; }
+  p.section-lede { color: var(--fg-muted); max-width: 640px; font-size: 1.05rem; margin-bottom: 40px; }
+  .eyebrow { display: inline-block; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-cool); margin-bottom: 12px; }
+
+  /* Features grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; box-shadow: var(--shadow); transition: transform 0.2s; }
+  .card:hover { transform: translateY(-2px); }
+  .card .iconbox { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; font-size: 1.3rem; font-weight: 600; color: #fff; }
+  .iconbox.cool { background: linear-gradient(135deg, #5EE2D7 0%, #00A6B4 100%); }
+  .iconbox.warm { background: linear-gradient(135deg, #FFB07C 0%, #FF6B6B 100%); }
+  .iconbox.dark { background: var(--night); }
+  .iconbox.mixed { background: linear-gradient(135deg, #00A6B4 0%, #FF6B6B 100%); }
+  .card h3 { font-size: 1.15rem; margin-bottom: 8px; }
+  .card p { color: var(--fg-muted); font-size: 0.95rem; }
+
+  /* Privacy promise */
+  .promise { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; }
+  .promise-item { text-align: center; padding: 24px 16px; }
+  .promise-item .big { font-size: 3rem; font-weight: 800; background: linear-gradient(120deg, var(--accent-cool) 0%, var(--accent-warm) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; line-height: 1; }
+  .promise-item .label { margin-top: 8px; font-size: 0.95rem; color: var(--fg-muted); }
+
+  /* Whats new */
+  .whats-new ul { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .whats-new li { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; font-size: 0.95rem; }
+  .whats-new li strong { display: block; color: var(--accent-cool); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+
+  /* CTA */
+  .cta-band { background: linear-gradient(120deg, var(--night) 0%, var(--night-deep) 100%); color: #fff; padding: 80px 24px; text-align: center; }
+  .cta-band h2 { font-size: clamp(1.6rem, 4vw, 2.4rem); margin-bottom: 12px; }
+  .cta-band p { color: #a1a1a6; margin-bottom: 28px; }
+  .cta-band .btn { background: #fff; color: var(--night); }
+
+  /* Footer */
+  footer { padding: 48px 24px; text-align: center; font-size: 0.88rem; color: var(--fg-muted); border-top: 1px solid var(--border); }
+  footer a { color: var(--fg-muted); margin: 0 10px; }
+
+  .lang-group { display: none; }
+  .lang-group.active { display: block; }
+  .lang-inline { display: none; }
+  .lang-inline.active { display: inline; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="logo">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100" height="100" fill="#0B1438"/>
+        <rect x="28" y="20" width="54" height="36" rx="8" fill="#5EE2D7"/>
+        <rect x="18" y="44" width="54" height="36" rx="8" fill="#FF6B6B"/>
+      </svg>
+      <span class="lang-inline en active">Offline Translator</span>
+      <span class="lang-inline zh">離線翻譯</span>
+    </a>
+    <div class="nav-right">
+      <a href="#features" class="lang-inline en active">Features</a>
+      <a href="#features" class="lang-inline zh">功能</a>
+      <a href="#privacy" class="lang-inline en active">Privacy</a>
+      <a href="#privacy" class="lang-inline zh">隱私</a>
+      <a href="https://github.com/mina0717/offline-translator-ios">GitHub</a>
+      <div class="lang-toggle">
+        <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
+        <button id="btn-zh" onclick="setLang('zh')">中</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div>
+    <div class="eyebrow">
+      <span class="lang-inline en active">Private by design</span>
+      <span class="lang-inline zh">隱私為先</span>
+    </div>
+    <div class="lang-group en active">
+      <h1>Translate without<br><span class="gradient">sending a byte</span> to anyone.</h1>
+      <p class="lede">Voice, camera, and a personal dictionary — all running on your iPhone. Zero servers. Zero analytics. Zero ads.</p>
+    </div>
+    <div class="lang-group zh">
+      <h1>翻譯，<br><span class="gradient">不上傳</span> 任何一個 byte。</h1>
+      <p class="lede">語音、鏡頭、個人字典，全部在你的 iPhone 上運作。沒有伺服器、沒有分析追蹤、沒有廣告。</p>
+    </div>
+    <div class="hero-cta">
+      <a href="https://apps.apple.com" class="btn btn-primary">
+        <span class="lang-inline en active">Coming to the App Store</span>
+        <span class="lang-inline zh">即將上架 App Store</span>
+      </a>
+      <a href="https://github.com/mina0717/offline-translator-ios" class="btn btn-ghost">
+        <span class="lang-inline en active">View on GitHub</span>
+        <span class="lang-inline zh">GitHub 原始碼</span>
+      </a>
+    </div>
+  </div>
+  <div class="hero-icon-wrap">
+    <svg class="hero-icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="heroBg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#0B1438"/>
+          <stop offset="1" stop-color="#050A24"/>
+        </linearGradient>
+        <linearGradient id="heroA" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#5EE2D7"/>
+          <stop offset="1" stop-color="#00A6B4"/>
+        </linearGradient>
+        <linearGradient id="heroB" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#FFB07C"/>
+          <stop offset="1" stop-color="#FF6B6B"/>
+        </linearGradient>
+      </defs>
+      <rect width="1024" height="1024" fill="url(#heroBg)"/>
+      <path d="M 330 290 Q 330 220 400 220 L 720 220 Q 790 220 790 290 L 790 470 Q 790 540 720 540 L 500 540 L 430 610 L 430 540 L 400 540 Q 330 540 330 470 Z" fill="url(#heroA)"/>
+      <path d="M 694 554 Q 694 484 624 484 L 304 484 Q 234 484 234 554 L 234 734 Q 234 804 304 804 L 524 804 L 594 874 L 594 804 L 624 804 Q 694 804 694 734 Z" fill="url(#heroB)"/>
+      <circle cx="440" cy="378" r="22" fill="#fff"/><circle cx="512" cy="378" r="22" fill="#fff"/><circle cx="584" cy="378" r="22" fill="#fff"/>
+      <circle cx="410" cy="644" r="20" fill="#0B1438"/><circle cx="478" cy="644" r="20" fill="#0B1438"/><circle cx="546" cy="644" r="20" fill="#0B1438"/>
+    </svg>
+  </div>
+</div>
+
+<!-- Features -->
+<section class="block" id="features">
+  <div class="eyebrow">
+    <span class="lang-inline en active">Four ways to translate</span>
+    <span class="lang-inline zh">四種翻譯方式</span>
+  </div>
+  <div class="lang-group en active">
+    <h2 class="section-title">Everything you need,<br>nothing you don't.</h2>
+    <p class="section-lede">Type, speak, or snap a photo. Save what you want to remember. Every mode runs on your device.</p>
+  </div>
+  <div class="lang-group zh">
+    <h2 class="section-title">該有的一個不少，<br>多餘的一個都沒有。</h2>
+    <p class="section-lede">輸入、說話、或用鏡頭拍。想記的存下來。每一種模式都在你的裝置上完成。</p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="iconbox cool">Aa</div>
+      <div class="lang-group en active"><h3>Text translation</h3><p>Live character counter. One-tap save, copy, and retry.</p></div>
+      <div class="lang-group zh"><h3>文字翻譯</h3><p>即時字數提示。一鍵儲存、複製、重試。</p></div>
+    </div>
+    <div class="card">
+      <div class="iconbox warm">♪</div>
+      <div class="lang-group en active"><h3>Voice translation</h3><p>Hold to speak, release to translate. Haptic feedback guides you.</p></div>
+      <div class="lang-group zh"><h3>語音翻譯</h3><p>按住說話，放開翻譯。觸覺回饋引導每一步。</p></div>
+    </div>
+    <div class="card">
+      <div class="iconbox mixed">◉</div>
+      <div class="lang-group en active"><h3>Photo OCR</h3><p>Point at a menu or sign. Vision reads the text. Translation is instant.</p></div>
+      <div class="lang-group zh"><h3>拍照翻譯</h3><p>對準菜單或標示牌。Vision 辨識文字，即刻翻譯。</p></div>
+    </div>
+    <div class="card">
+      <div class="iconbox dark">★</div>
+      <div class="lang-group en active"><h3>Vocabulary notebook</h3><p>Save any translation. Browse your personal word list, grouped by date.</p></div>
+      <div class="lang-group zh"><h3>字典 / 生詞本</h3><p>任何翻譯一鍵儲存。依日期分組瀏覽你的個人單字。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Privacy -->
+<section class="block alt" id="privacy">
+  <div class="inner">
+    <div class="eyebrow">
+      <span class="lang-inline en active">Privacy, verifiably</span>
+      <span class="lang-inline zh">可以親自驗證的隱私</span>
+    </div>
+    <div class="lang-group en active">
+      <h2 class="section-title">Read the source.<br>Read the manifest.</h2>
+      <p class="section-lede">We're not asking you to trust a marketing page. The privacy manifest ships with the app; the source is on GitHub.</p>
+    </div>
+    <div class="lang-group zh">
+      <h2 class="section-title">程式碼可看。<br>隱私宣告可查。</h2>
+      <p class="section-lede">我們不會要你相信行銷頁面的說法。App 本身帶有 Privacy Manifest，原始碼公開在 GitHub。</p>
+    </div>
+
+    <div class="promise">
+      <div class="promise-item"><div class="big">0</div><div class="label"><span class="lang-inline en active">Third-party SDKs</span><span class="lang-inline zh">第三方 SDK</span></div></div>
+      <div class="promise-item"><div class="big">0</div><div class="label"><span class="lang-inline en active">Analytics events</span><span class="lang-inline zh">分析追蹤事件</span></div></div>
+      <div class="promise-item"><div class="big">0</div><div class="label"><span class="lang-inline en active">Servers we run</span><span class="lang-inline zh">我們的伺服器</span></div></div>
+      <div class="promise-item"><div class="big">0</div><div class="label"><span class="lang-inline en active">Ads you'll ever see</span><span class="lang-inline zh">你會看到的廣告</span></div></div>
+    </div>
+
+    <p style="margin-top: 32px; text-align: center;">
+      <a href="./privacy.html" class="btn btn-ghost">
+        <span class="lang-inline en active">Read the full privacy policy →</span>
+        <span class="lang-inline zh">完整隱私政策 →</span>
+      </a>
+    </p>
+  </div>
+</section>
+
+<!-- What's new -->
+<section class="block whats-new">
+  <div class="eyebrow">v1.1</div>
+  <div class="lang-group en active">
+    <h2 class="section-title">What's new.</h2>
+    <p class="section-lede">Vocabulary, Share, Siri, and more natural feel — shipping April 2026.</p>
+  </div>
+  <div class="lang-group zh">
+    <h2 class="section-title">v1.1 新版亮點</h2>
+    <p class="section-lede">生詞本、分享、Siri、更自然的操作手感 — 2026 年 4 月發布。</p>
+  </div>
+  <ul class="lang-group en active">
+    <li><strong>NEW</strong>Vocabulary notebook with date grouping + CSV export</li>
+    <li><strong>NEW</strong>Share Extension — translate from Safari, Notes, Messages</li>
+    <li><strong>NEW</strong>Siri &amp; App Intents shortcuts ("Translate clipboard")</li>
+    <li><strong>NEW</strong>TipKit onboarding — 4 contextual discovery tips</li>
+    <li><strong>NEW</strong>Hold-to-speak with haptic feedback</li>
+    <li><strong>NEW</strong>Full English localization</li>
+    <li><strong>POLISH</strong>Character counter, retry button, hand-tuned dark mode</li>
+  </ul>
+  <ul class="lang-group zh">
+    <li><strong>NEW</strong>詞彙本：依日期分組 + CSV 匯出</li>
+    <li><strong>NEW</strong>分享擴充 — 從 Safari / 備忘錄 / 訊息 翻譯</li>
+    <li><strong>NEW</strong>Siri 與 App Intents 捷徑（「翻譯剪貼簿」）</li>
+    <li><strong>NEW</strong>TipKit 新手引導（4 組情境提示）</li>
+    <li><strong>NEW</strong>按住說話手勢 + 觸覺回饋</li>
+    <li><strong>NEW</strong>完整英文介面在地化</li>
+    <li><strong>POLISH</strong>字數提示、重試按鈕、人工調校深色模式</li>
+  </ul>
+</section>
+
+<!-- CTA -->
+<div class="cta-band">
+  <div class="lang-group en active">
+    <h2>Built for people who'd rather not be tracked.</h2>
+    <p>Works on iPhone and iPad. iOS 17.0+ (Apple Translation: iOS 17.4+).</p>
+    <a href="https://apps.apple.com" class="btn">Coming to the App Store</a>
+  </div>
+  <div class="lang-group zh">
+    <h2>為不想被追蹤的人而生。</h2>
+    <p>iPhone 和 iPad 皆可。需要 iOS 17.0 以上（Apple Translation：iOS 17.4+）。</p>
+    <a href="https://apps.apple.com" class="btn">即將上架 App Store</a>
+  </div>
+</div>
+
+<footer>
+  <div>© 2026 Offline Translator / 離線翻譯</div>
+  <div style="margin-top: 8px;">
+    <a href="./privacy.html">
+      <span class="lang-inline en active">Privacy</span>
+      <span class="lang-inline zh">隱私政策</span>
+    </a> ·
+    <a href="https://github.com/mina0717/offline-translator-ios">GitHub</a> ·
+    <a href="https://github.com/mina0717/offline-translator-ios/blob/main/marketing/FAQ.md">FAQ</a> ·
+    <a href="https://github.com/mina0717/offline-translator-ios/blob/main/marketing/PRESS_KIT.md">
+      <span class="lang-inline en active">Press Kit</span>
+      <span class="lang-inline zh">媒體資料</span>
+    </a> ·
+    <a href="https://github.com/mina0717/offline-translator-ios/issues">
+      <span class="lang-inline en active">Support</span>
+      <span class="lang-inline zh">技術支援</span>
+    </a>
+  </div>
+</footer>
+
+<script>
+  function setLang(l) {
+    document.querySelectorAll('.lang-group, .lang-inline').forEach(el => {
+      if (el.classList.contains(l)) el.classList.add('active');
+      else el.classList.remove('active');
+    });
+    document.getElementById('btn-en').classList.toggle('active', l === 'en');
+    document.getElementById('btn-zh').classList.toggle('active', l === 'zh');
+    document.documentElement.lang = l === 'zh' ? 'zh-Hant' : 'en';
+    history.replaceState(null, '', '#' + l);
+  }
+  (function() {
+    const hash = (location.hash || '').replace('#', '');
+    if (hash === 'zh' || hash === 'en') { setLang(hash); return; }
+    const nav = (navigator.language || '').toLowerCase();
+    if (nav.startsWith('zh')) setLang('zh');
+  })();
+</script>
+</body>
+</html>
