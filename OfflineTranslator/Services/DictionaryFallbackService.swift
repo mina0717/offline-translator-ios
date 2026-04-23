@@ -50,7 +50,7 @@ final class DictionaryFallbackService: DictionaryLookupService {
     /// Key 格式：`"\(word)|\(srcCode)|\(tgtCode)"` 小寫
     private let dictionary: [String: DictionaryEntry]
 
-    init(entries: [DictionaryEntry] = Self.defaultEntries) {
+    init(entries: [DictionaryEntry] = DictionaryFallbackService.defaultEntries) {
         var dict: [String: DictionaryEntry] = [:]
         for entry in entries {
             // 建立 zh↔en 兩個方向的索引
