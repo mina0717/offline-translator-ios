@@ -23,8 +23,8 @@ targets:
     info:
       path: OfflineTranslator/Resources/Info.plist
       properties:
-        CFBundleDisplayName: Offline Translator
-        CFBundleShortVersionString: "0.1.0"
+        CFBundleDisplayName: 離線翻譯
+        CFBundleShortVersionString: "1.1.0"
         CFBundleVersion: "1"
         CFBundleDevelopmentRegion: zh-Hant
         CFBundleLocalizations:
