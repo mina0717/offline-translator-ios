@@ -25,7 +25,7 @@ env:
   SCHEME: OfflineTranslator
   PROJECT: OfflineTranslator.xcodeproj
   CONFIGURATION: Release
-  XCODE_VERSION: "16.2"
+  XCODE_VERSION: "16.4"
 
 jobs:
   build:
