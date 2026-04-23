@@ -62,12 +62,24 @@ targets:
       - OfflineTranslatorShare
     info:
       path: OfflineTranslatorShare/Info.plist
-      properties: {}
+      properties:
+        CFBundleDisplayName: 離線翻譯
+        CFBundleDevelopmentRegion: zh-Hant
+        CFBundleLocalizations:
+          - zh-Hant
+          - en
+        NSExtension:
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsWebPageWithMaxCount: 1
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionPointIdentifier: com.apple.share-services
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mina0717.offlinetranslator.Share
         GENERATE_INFOPLIST_FILE: NO
-        INFOPLIST_FILE: OfflineTranslatorShare/Info.plist
         TARGETED_DEVICE_FAMILY: "1"
         SUPPORTS_MACCATALYST: NO
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
