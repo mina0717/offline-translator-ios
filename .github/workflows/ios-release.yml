@@ -107,6 +107,9 @@ jobs:
       # ────────────────────────────────────────────────────────────
       - name: Archive
         run: |
+          set -o pipefail
+          # Keep full verbose log so failures are debuggable; pipe through tee into a file
+          # Do NOT use xcpretty here — it swallows the real error messages.
           xcodebuild \
             -project "$PROJECT" \
             -scheme "$SCHEME" \
@@ -121,7 +124,15 @@ jobs:
             MARKETING_VERSION="${{ steps.versions.outputs.marketing_version }}" \
             CODE_SIGN_STYLE=Automatic \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            archive | xcpretty && exit ${PIPESTATUS[0]}
+            archive 2>&1 | tee "$RUNNER_TEMP/xcodebuild-archive.log"
+
+      - name: Upload xcodebuild log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-archive-log
+          path: ${{ runner.temp }}/xcodebuild-archive.log
+          retention-days: 7
 
       # ────────────────────────────────────────────────────────────
       # 7. Export IPA (app-store)
