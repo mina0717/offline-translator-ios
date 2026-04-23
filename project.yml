@@ -57,7 +57,7 @@ targets:
   OfflineTranslatorShare:
     type: app-extension
     platform: iOS
-    deploymentTarget: "17.4"
+    deploymentTarget: "18.0"
     sources:
       - OfflineTranslatorShare
     info:
