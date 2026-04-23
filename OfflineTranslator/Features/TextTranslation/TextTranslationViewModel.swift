@@ -16,6 +16,17 @@ final class TextTranslationViewModel: ObservableObject {
     /// v1.1：這一輪翻譯是否已被收藏到生詞本
     @Published var isSaved: Bool = false
 
+    /// v1.1：目前輸入/輸出是否可以收藏（非空 + 尚未收藏 + 非 loading）
+    /// 用計算屬性追蹤，不需要額外的 @Published 欄位。
+    var canSave: Bool {
+        let trimmedInput = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedOutput = outputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !trimmedInput.isEmpty
+            && !trimmedOutput.isEmpty
+            && !isSaved
+            && !isLoading
+    }
+
     // MARK: - Dependencies
 
     private let useCase: TranslateTextUseCase

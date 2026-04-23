@@ -34,7 +34,7 @@ struct RootView: View {
         }
         // 把 AppleMTService 的 bridge 掛到 View tree 上，
         // .translationTask modifier 才能在需要時執行翻譯與語言包下載。
-        .appleTranslationBridge(deps.mtService as? AppleMTService)
+        .appleTranslationBridge((deps.mtService as? AppleMTService)?.bridge)
         // v1.1 fix：監聽 Siri / Shortcuts 送過來的 queue；每次 queue 非空就消費首筆。
         .onReceive(intentStore.$queue.filter { !$0.isEmpty }) { _ in
             drainQueue()

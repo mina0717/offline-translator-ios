@@ -1,7 +1,7 @@
 import Foundation
 
 /// 語言包（Apple Translation 的 on-device model）狀態。
-enum LanguagePackStatus: Equatable {
+enum LanguagePackStatus: Equatable, Hashable {
     /// 從未下載
     case notDownloaded
     /// 下載中（progress 0.0–1.0）

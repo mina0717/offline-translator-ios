@@ -35,7 +35,7 @@ struct HoldToSpeakTip: Tip {
     /// 只在還沒錄過音時出現
     var rules: [Rule] {
         [
-            #Rule(Self.$hasRecordedOnce) { $0 == false }
+            #Rule(HoldToSpeakTip.$hasRecordedOnce) { $0 == false }
         ]
     }
 }
@@ -60,7 +60,7 @@ struct CameraTip: Tip {
 
     var rules: [Rule] {
         [
-            #Rule(Self.$hasUsedCameraOnce) { $0 == false }
+            #Rule(CameraTip.$hasUsedCameraOnce) { $0 == false }
         ]
     }
 }
@@ -85,7 +85,7 @@ struct LanguageSwitchTip: Tip {
 
     var rules: [Rule] {
         [
-            #Rule(Self.$hasSwappedOnce) { $0 == false }
+            #Rule(LanguageSwitchTip.$hasSwappedOnce) { $0 == false }
         ]
     }
 }
