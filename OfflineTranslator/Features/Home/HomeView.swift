@@ -3,7 +3,7 @@ import SwiftUI
 /// 首頁：四個主入口（文字 / 語音 / 拍照 / 語言包）+ 歷史紀錄入口。
 struct HomeView: View {
     enum Destination: Hashable {
-        case text, speech, photo, languagePack, history, vocabulary
+        case text, speech, photo, languagePack, history, vocabulary, conversation
     }
 
     var body: some View {
@@ -27,6 +27,7 @@ struct HomeView: View {
                     HomeTile(icon: "text.bubble.fill", title: "文字翻譯",  subtitle: "輸入即翻譯", destination: .text)
                     HomeTile(icon: "mic.fill",         title: "語音翻譯",  subtitle: "按住說話",   destination: .speech)
                     HomeTile(icon: "camera.fill",      title: "拍照翻譯",  subtitle: "辨識圖片文字", destination: .photo)
+                    HomeTile(icon: "bubble.left.and.bubble.right.fill", title: "雙向對話", subtitle: "面對面互譯", destination: .conversation)
                     HomeTile(icon: "arrow.down.circle.fill", title: "語言包", subtitle: "離線管理",   destination: .languagePack)
                 }
 
@@ -76,6 +77,7 @@ struct HomeView: View {
             case .text:         TextTranslationView()
             case .speech:       SpeechTranslationView()
             case .photo:        PhotoTranslationView()
+            case .conversation: ConversationView()
             case .languagePack: LanguagePackView()
             case .history:      HistoryView()
             case .vocabulary:   VocabularyView()
