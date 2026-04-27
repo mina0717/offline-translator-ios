@@ -90,8 +90,9 @@ private struct TextTranslationContent: View {
         ScrollView {
             VStack(spacing: Theme.Spacing.md) {
                 languageSelector
-                inputCard
+                // v1.1.2 UX：譯文卡放在輸入卡上方，使用者輸入時不用低頭看
                 outputCard
+                inputCard
 
                 if let msg = vm.errorMessage {
                     HStack(alignment: .top, spacing: Theme.Spacing.sm) {
@@ -99,13 +100,13 @@ private struct TextTranslationContent: View {
                             .foregroundStyle(.red)
                         VStack(alignment: .leading, spacing: 4) {
                             Text(msg)
-                                .font(Theme.Font.caption)
+                                .font(Theme.Font.body)
                                 .foregroundStyle(.red)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             Button("重試") {
                                 Task { await vm.translate() }
                             }
-                            .font(Theme.Font.caption)
+                            .font(Theme.Font.body)
                             .foregroundStyle(Theme.Colors.accent)
                         }
                     }
@@ -117,11 +118,16 @@ private struct TextTranslationContent: View {
                     .padding(.horizontal, Theme.Spacing.md)
                 }
 
-                translateButton
                 Spacer(minLength: Theme.Spacing.xl)
             }
             .padding(.horizontal, Theme.Spacing.lg)
             .padding(.top, Theme.Spacing.md)
+        }
+        // v1.1.2 UX：捲動時自動隱藏鍵盤，避免鍵盤遮畫面
+        .scrollDismissesKeyboard(.interactively)
+        // v1.1.2 UX：輸入文字變化 → 自動翻譯（debounced 600ms）
+        .onChange(of: vm.inputText) { _, _ in
+            vm.onInputChanged()
         }
     }
 
@@ -160,10 +166,24 @@ private struct TextTranslationContent: View {
             }
 
             TextEditor(text: $vm.inputText)
-                .font(Theme.Font.body)
+                .font(Theme.Font.translation)         // v1.1.2 老人友善：26pt
                 .scrollContentBackground(.hidden)
-                .frame(minHeight: 120)
+                .frame(minHeight: 140)                 // 字大 → 同行高需求變大
                 .foregroundStyle(Theme.Colors.textPrimary)
+                // v1.1.2 UX：上方加 toolbar「完成」按鈕讓使用者可關鍵盤
+                .toolbar {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("完成") {
+                            UIApplication.shared.sendAction(
+                                #selector(UIResponder.resignFirstResponder),
+                                to: nil, from: nil, for: nil
+                            )
+                        }
+                        .font(Theme.Font.body)
+                        .foregroundStyle(Theme.Colors.accent)
+                    }
+                }
 
             if !vm.inputText.isEmpty {
                 HStack {
@@ -211,21 +231,22 @@ private struct TextTranslationContent: View {
                 HStack {
                     ProgressView()
                     Text("翻譯中…")
-                        .font(Theme.Font.body)
+                        .font(Theme.Font.translation)
                         .foregroundStyle(Theme.Colors.textSecondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(minHeight: 100)
+                .frame(minHeight: 120)
             } else {
-                Text(vm.outputText.isEmpty ? "譯文會出現在這裡" : vm.outputText)
-                    .font(Theme.Font.body)
+                // v1.1.2 老人友善：譯文用 28pt + medium weight，最醒目
+                Text(vm.outputText.isEmpty ? "輸入文字後會自動翻譯" : vm.outputText)
+                    .font(Theme.Font.translationEmphasized)
                     .foregroundStyle(
                         vm.outputText.isEmpty
                             ? Theme.Colors.textSecondary
                             : Theme.Colors.textPrimary
                     )
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .frame(minHeight: 100, alignment: .topLeading)
+                    .frame(minHeight: 120, alignment: .topLeading)
                     .textSelection(.enabled)
             }
 
