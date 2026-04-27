@@ -1,13 +1,13 @@
 import SwiftUI
 import UIKit
 
-/// 雙向對話模式（v1.2.0）
+/// 雙向對話模式（v1.2.1：上下分割，上方旋轉 180°）
 ///
-/// 兩位使用者面對面，各自按住自己的麥克風說話：
-/// - 系統把該語言辨識成文字
-/// - 翻譯成對方語言
-/// - 自動朗讀譯文（讓對方聽得到）
-/// - 對話歷史以聊天氣泡呈現
+/// 使用情境：手機平放在兩人之間。
+/// - 上半部：對方視角，**整個畫面旋轉 180°**，讓對方坐在對面也能正面閱讀。
+/// - 下半部：我自己看，文字方向正常。
+/// - 兩人各自有自己「順手位置」的麥克風（你按下方、對方按上方那顆，
+///   旋轉後對方看到的是「正常方向」的麥克風按鈕在他自己的下方）。
 struct ConversationView: View {
     @EnvironmentObject private var deps: AppDependencies
     @StateObject private var vmHolder = VMHolder()
@@ -43,122 +43,119 @@ struct ConversationView: View {
 
         var body: some View {
             VStack(spacing: 0) {
-                languageBar
-                    .padding(.horizontal, Theme.Spacing.lg)
-                    .padding(.top, Theme.Spacing.md)
+                // ─────── 上半部：對方視角（整個旋轉 180°）───────
+                topHalf
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .rotationEffect(.degrees(180))
 
-                // 對話列表 (chat bubbles)
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(spacing: Theme.Spacing.md) {
-                            if vm.turns.isEmpty && !vm.isRecording {
-                                emptyState
-                                    .padding(.top, 60)
-                            } else {
-                                ForEach(vm.turns) { turn in
-                                    ConversationBubble(
-                                        turn: turn,
-                                        sideALanguage: vm.sideALanguage,
-                                        onReplay: { Task { await vm.replay(turn: turn) } }
-                                    )
-                                    .id(turn.id)
-                                }
-                            }
+                // ─────── 中間分隔線（含 swap 按鈕）───────
+                middleDivider
 
-                            // 即時 partial 顯示（錄音中）
-                            if vm.isRecording {
-                                LivePartialBubble(
-                                    speaker: vm.recordingSide ?? vm.sideALanguage,
-                                    text: vm.partialTranscript,
-                                    sideALanguage: vm.sideALanguage
-                                )
-                                .id("partial")
-                            }
-                        }
-                        .padding(Theme.Spacing.lg)
-                    }
-                    .onChange(of: vm.turns.count) { _, _ in
-                        // 新增一筆對話 → 自動捲到最底
-                        if let lastId = vm.turns.last?.id {
-                            withAnimation { proxy.scrollTo(lastId, anchor: .bottom) }
-                        }
-                    }
-                    .onChange(of: vm.partialTranscript) { _, _ in
-                        if vm.isRecording {
-                            withAnimation { proxy.scrollTo("partial", anchor: .bottom) }
-                        }
-                    }
-                }
+                // ─────── 下半部：我自己（正常方向）───────
+                bottomHalf
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+
+        // MARK: 上半（對方視角，會被 rotation 180°）
+
+        private var topHalf: some View {
+            VStack(spacing: 0) {
+                // 對方的麥克風（旋轉後會出現在「對方那一側的下方」）
+                SideRecordButton(
+                    language: vm.sideBLanguage,
+                    vm: vm
+                )
+                .padding(.horizontal, Theme.Spacing.lg)
+                .padding(.top, Theme.Spacing.md)
+
+                // 對方的對話顯示
+                ChatScroll(
+                    vm: vm,
+                    selfLanguage: vm.sideBLanguage,
+                    scrollAnchorId: "topAnchor"
+                )
+                .padding(.horizontal, Theme.Spacing.lg)
+                .padding(.top, Theme.Spacing.sm)
 
                 if let msg = vm.errorMessage {
                     errorBanner(msg)
                         .padding(.horizontal, Theme.Spacing.lg)
+                        .padding(.bottom, Theme.Spacing.sm)
                 }
-
-                // 兩顆錄音按鈕（一邊一個）
-                HStack(spacing: Theme.Spacing.md) {
-                    SideRecordButton(
-                        language: vm.sideALanguage,
-                        vm: vm,
-                        side: .a
-                    )
-                    SideRecordButton(
-                        language: vm.sideBLanguage,
-                        vm: vm,
-                        side: .b
-                    )
-                }
-                .padding(.horizontal, Theme.Spacing.lg)
-                .padding(.bottom, Theme.Spacing.lg)
             }
         }
 
-        // MARK: - Subviews
+        // MARK: 下半（我自己）
 
-        private var languageBar: some View {
+        private var bottomHalf: some View {
+            VStack(spacing: 0) {
+                // 我這邊的對話顯示
+                ChatScroll(
+                    vm: vm,
+                    selfLanguage: vm.sideALanguage,
+                    scrollAnchorId: "bottomAnchor"
+                )
+                .padding(.horizontal, Theme.Spacing.lg)
+                .padding(.top, Theme.Spacing.sm)
+
+                if let msg = vm.errorMessage {
+                    errorBanner(msg)
+                        .padding(.horizontal, Theme.Spacing.lg)
+                        .padding(.bottom, Theme.Spacing.sm)
+                }
+
+                // 我的麥克風
+                SideRecordButton(
+                    language: vm.sideALanguage,
+                    vm: vm
+                )
+                .padding(.horizontal, Theme.Spacing.lg)
+                .padding(.bottom, Theme.Spacing.md)
+            }
+        }
+
+        // MARK: 中間分隔線
+
+        private var middleDivider: some View {
             HStack(spacing: Theme.Spacing.sm) {
-                LanguageBadge(language: vm.sideALanguage, caption: "你")
+                Rectangle()
+                    .fill(Theme.Colors.textSecondary.opacity(0.25))
+                    .frame(height: 1)
+
                 Button(action: vm.swapSides) {
-                    Image(systemName: "arrow.left.arrow.right")
-                        .font(.system(size: 16, weight: .semibold))
+                    Image(systemName: "arrow.up.arrow.down")
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Theme.Colors.accent)
-                        .padding(10)
+                        .padding(8)
                         .background(Circle().fill(.ultraThinMaterial))
                 }
                 .buttonStyle(.plain)
                 .disabled(vm.isRecording || vm.isBusy)
-                LanguageBadge(language: vm.sideBLanguage, caption: "對方")
+                .accessibilityLabel("交換上下語言")
 
                 if !vm.turns.isEmpty {
                     Button(action: vm.clearAll) {
                         Image(systemName: "trash")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(Theme.Colors.textSecondary)
-                            .padding(10)
+                            .padding(8)
                             .background(Circle().fill(.ultraThinMaterial))
                     }
                     .buttonStyle(.plain)
                     .disabled(vm.isRecording || vm.isBusy)
                     .accessibilityLabel("清空對話")
                 }
+
+                Rectangle()
+                    .fill(Theme.Colors.textSecondary.opacity(0.25))
+                    .frame(height: 1)
             }
+            .padding(.horizontal, Theme.Spacing.lg)
+            .frame(height: 36)
         }
 
-        private var emptyState: some View {
-            VStack(spacing: Theme.Spacing.md) {
-                Image(systemName: "bubble.left.and.bubble.right.fill")
-                    .font(.system(size: 64, weight: .light))
-                    .foregroundStyle(Theme.Colors.accent.opacity(0.4))
-                Text("按住下方按鈕說話")
-                    .font(Theme.Font.headline)
-                    .foregroundStyle(Theme.Colors.textPrimary)
-                Text("放開後系統會自動翻譯給對方聽")
-                    .font(Theme.Font.body)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-        }
+        // MARK: 錯誤條
 
         @ViewBuilder
         private func errorBanner(_ msg: String) -> some View {
@@ -184,44 +181,109 @@ struct ConversationView: View {
     }
 }
 
-// MARK: - Chat Bubble
+// MARK: - ChatScroll
 
-/// 「我方」(side A) 顯示在右、「對方」(side B) 顯示在左，模仿訊息 App 慣例。
+/// 顯示對話歷史。`selfLanguage` 決定在這個視角下，誰算「自己」（右靠齊）、
+/// 誰算「對方」（左靠齊）。
+private struct ChatScroll: View {
+    @ObservedObject var vm: ConversationViewModel
+    let selfLanguage: Language
+    let scrollAnchorId: String
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: Theme.Spacing.sm) {
+                    if vm.turns.isEmpty && !vm.isRecording {
+                        emptyState
+                            .padding(.top, 30)
+                    } else {
+                        ForEach(vm.turns) { turn in
+                            ConversationBubble(
+                                turn: turn,
+                                selfLanguage: selfLanguage,
+                                onReplay: { Task { await vm.replay(turn: turn) } }
+                            )
+                            .id("\(scrollAnchorId)-\(turn.id)")
+                        }
+                    }
+
+                    if vm.isRecording {
+                        LivePartialBubble(
+                            speaker: vm.recordingSide ?? selfLanguage,
+                            text: vm.partialTranscript,
+                            selfLanguage: selfLanguage
+                        )
+                        .id("\(scrollAnchorId)-partial")
+                    }
+
+                    // bottom anchor 用來 auto-scroll
+                    Color.clear.frame(height: 1).id("\(scrollAnchorId)-bottom")
+                }
+                .padding(.vertical, Theme.Spacing.sm)
+            }
+            .onChange(of: vm.turns.count) { _, _ in
+                withAnimation {
+                    proxy.scrollTo("\(scrollAnchorId)-bottom", anchor: .bottom)
+                }
+            }
+            .onChange(of: vm.partialTranscript) { _, _ in
+                if vm.isRecording {
+                    withAnimation {
+                        proxy.scrollTo("\(scrollAnchorId)-bottom", anchor: .bottom)
+                    }
+                }
+            }
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: Theme.Spacing.sm) {
+            Image(systemName: "bubble.left.and.bubble.right.fill")
+                .font(.system(size: 40, weight: .light))
+                .foregroundStyle(Theme.Colors.accent.opacity(0.4))
+            Text("按住下方按鈕說話")
+                .font(Theme.Font.body)
+                .foregroundStyle(Theme.Colors.textPrimary)
+            Text("放開後系統會自動翻譯給對方聽")
+                .font(Theme.Font.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - ConversationBubble
+
+/// 對話氣泡：自己說的靠右、對方說的靠左（依 selfLanguage 判定）
 private struct ConversationBubble: View {
     let turn: ConversationTurn
-    let sideALanguage: Language
+    let selfLanguage: Language
     let onReplay: () -> Void
 
-    private var isSelf: Bool { turn.speaker == sideALanguage }
+    private var isSelf: Bool { turn.speaker == selfLanguage }
 
     var body: some View {
         HStack(alignment: .top) {
-            if isSelf { Spacer(minLength: 40) }
-            VStack(alignment: isSelf ? .trailing : .leading, spacing: 6) {
-                // 原文
-                Text(turn.originalText)
-                    .font(Theme.Font.body)
-                    .foregroundStyle(Theme.Colors.textPrimary)
-                    .multilineTextAlignment(isSelf ? .trailing : .leading)
-
-                Divider().opacity(0.3)
-
-                // 譯文
-                HStack(alignment: .top, spacing: 6) {
-                    if !isSelf {
-                        Button(action: onReplay) {
-                            Image(systemName: "speaker.wave.2.fill")
-                                .font(.system(size: 14))
-                                .foregroundStyle(Theme.Colors.accent)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("再聽一次")
-                    }
-                    Text(turn.translatedText)
+            if isSelf { Spacer(minLength: 30) }
+            VStack(alignment: isSelf ? .trailing : .leading, spacing: 4) {
+                // 在這個視角下：
+                // - 自己說的：原文是給「我」確認系統有正確聽到
+                // - 對方說的：譯文是給「我」看懂他在說什麼
+                if isSelf {
+                    // 自己說的話：顯示原文（自己的語言）較大
+                    Text(turn.originalText)
                         .font(Theme.Font.body)
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                        .multilineTextAlignment(.trailing)
+                    Text(turn.translatedText)
+                        .font(Theme.Font.caption)
                         .foregroundStyle(Theme.Colors.accent)
-                        .multilineTextAlignment(isSelf ? .trailing : .leading)
-                    if isSelf {
+                        .multilineTextAlignment(.trailing)
+                } else {
+                    // 對方說的話：譯文（我的語言）較大，原文小字附加
+                    HStack(alignment: .top, spacing: 6) {
                         Button(action: onReplay) {
                             Image(systemName: "speaker.wave.2.fill")
                                 .font(.system(size: 14))
@@ -229,36 +291,38 @@ private struct ConversationBubble: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("再聽一次")
+                        Text(turn.translatedText)
+                            .font(Theme.Font.body)
+                            .foregroundStyle(Theme.Colors.textPrimary)
                     }
+                    Text(turn.originalText)
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .multilineTextAlignment(.leading)
                 }
-
-                // 來源 / 對方 標籤
-                Text("\(turn.speaker.flag) \(turn.speaker.displayName) → \(turn.listener.flag) \(turn.listener.displayName)")
-                    .font(Theme.Font.caption)
-                    .foregroundStyle(Theme.Colors.textSecondary)
             }
             .padding(Theme.Spacing.sm)
-            .frame(maxWidth: .infinity, alignment: isSelf ? .trailing : .leading)
             .background(
                 RoundedRectangle(cornerRadius: Theme.Radius.md)
                     .fill(.ultraThinMaterial)
             )
-            if !isSelf { Spacer(minLength: 40) }
+            if !isSelf { Spacer(minLength: 30) }
         }
     }
 }
 
-/// 即時 partial 辨識氣泡（錄音中閃爍顯示）
+// MARK: - LivePartialBubble
+
 private struct LivePartialBubble: View {
     let speaker: Language
     let text: String
-    let sideALanguage: Language
+    let selfLanguage: Language
 
-    private var isSelf: Bool { speaker == sideALanguage }
+    private var isSelf: Bool { speaker == selfLanguage }
 
     var body: some View {
         HStack {
-            if isSelf { Spacer(minLength: 40) }
+            if isSelf { Spacer(minLength: 30) }
             HStack(spacing: 6) {
                 Circle()
                     .fill(Color.red)
@@ -273,31 +337,23 @@ private struct LivePartialBubble: View {
                 RoundedRectangle(cornerRadius: Theme.Radius.md)
                     .fill(Color.red.opacity(0.1))
             )
-            if !isSelf { Spacer(minLength: 40) }
+            if !isSelf { Spacer(minLength: 30) }
         }
     }
 }
 
-// MARK: - Side Record Button
-
-private enum ConversationSide { case a, b }
+// MARK: - SideRecordButton
 
 private struct SideRecordButton: View {
     let language: Language
     @ObservedObject var vm: ConversationViewModel
-    let side: ConversationSide
 
     @GestureState private var isPressing: Bool = false
     @State private var hapticFired: Bool = false
 
-    /// 此按鈕對應的語言是否正在錄音
-    private var isThisSideRecording: Bool {
-        vm.recordingSide == language
-    }
-
-    /// 別人在錄音時，這顆要 disable
+    private var isThisSideRecording: Bool { vm.recordingSide == language }
     private var isOtherSideBusy: Bool {
-        vm.isRecording && !isThisSideRecording || vm.isBusy
+        (vm.isRecording && !isThisSideRecording) || vm.isBusy
     }
 
     var body: some View {
@@ -306,17 +362,22 @@ private struct SideRecordButton: View {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(isThisSideRecording ? Color.red.opacity(0.85) : Theme.Colors.accent)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 88)
+                    .frame(height: 76)
                     .shadow(color: (isThisSideRecording ? Color.red : Theme.Colors.accent).opacity(0.35),
-                            radius: isThisSideRecording ? 16 : 8, y: 4)
+                            radius: isThisSideRecording ? 14 : 6, y: 4)
 
-                VStack(spacing: 4) {
+                HStack(spacing: 12) {
                     Image(systemName: isThisSideRecording ? "mic.fill" : "mic")
-                        .font(.system(size: 28, weight: .bold))
+                        .font(.system(size: 24, weight: .bold))
                         .foregroundStyle(.white)
-                    Text("\(language.flag) \(language.displayName)")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(language.flag) \(language.displayName)")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white)
+                        Text(isThisSideRecording ? "放開結束" : "按住說話")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.85))
+                    }
                 }
             }
             .scaleEffect(isThisSideRecording ? 1.04 : 1.0)
@@ -341,32 +402,7 @@ private struct SideRecordButton: View {
             )
             .opacity(isOtherSideBusy ? 0.4 : 1.0)
             .accessibilityLabel(isThisSideRecording ? "\(language.displayName) 錄音中，放開結束" : "\(language.displayName) 按住說話")
-
-            Text(isThisSideRecording ? "放開結束" : "按住說話")
-                .font(Theme.Font.caption)
-                .foregroundStyle(Theme.Colors.textSecondary)
         }
-    }
-}
-
-// MARK: - LanguageBadge
-
-private struct LanguageBadge: View {
-    let language: Language
-    let caption: String
-
-    var body: some View {
-        VStack(spacing: 2) {
-            Text(caption)
-                .font(Theme.Font.caption)
-                .foregroundStyle(Theme.Colors.textSecondary)
-            Text("\(language.flag) \(language.displayName)")
-                .font(Theme.Font.body)
-                .foregroundStyle(Theme.Colors.textPrimary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, Theme.Spacing.sm)
-        .background(Capsule().fill(.ultraThinMaterial))
     }
 }
 
