@@ -44,11 +44,12 @@ struct PhotoTranslationView: View {
                     imageCard
                     actionButtons
                     errorBanner
-                    if !vm.recognizedLines.isEmpty {
-                        recognizedCard
-                    }
+                    // v1.1.2 UX：譯文卡放在「原文卡」之前，使用者看圖→直接看到翻譯
                     if !vm.translatedText.isEmpty {
                         translatedCard
+                    }
+                    if !vm.recognizedLines.isEmpty {
+                        recognizedCard
                     }
                     Spacer(minLength: Theme.Spacing.xl)
                 }
@@ -213,10 +214,10 @@ struct PhotoTranslationView: View {
         private var recognizedCard: some View {
             VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
                 Text("\(vm.sourceLanguage.flag) \(vm.sourceLanguage.displayName) · 辨識到 \(vm.recognizedLines.count) 行")
-                    .font(Theme.Font.caption)
+                    .font(Theme.Font.body)            // v1.1.2 caption→body 老人友善
                     .foregroundStyle(Theme.Colors.textSecondary)
                 Text(vm.mergedRecognizedText)
-                    .font(Theme.Font.body)
+                    .font(Theme.Font.translation)     // v1.1.2 26pt
                     .foregroundStyle(Theme.Colors.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .topLeading)
                     .textSelection(.enabled)
@@ -228,22 +229,28 @@ struct PhotoTranslationView: View {
             VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
                 HStack {
                     Text("\(vm.targetLanguage.flag) \(vm.targetLanguage.displayName) · 譯文")
-                        .font(Theme.Font.caption)
+                        .font(Theme.Font.body)        // v1.1.2 caption→body
                         .foregroundStyle(Theme.Colors.textSecondary)
                     Spacer()
                     Button {
                         UIPasteboard.general.string = vm.translatedText
                     } label: {
                         Label("複製", systemImage: "doc.on.doc")
-                            .font(Theme.Font.caption)
+                            .font(Theme.Font.body)
                     }
                     .buttonStyle(.bordered)
                     .tint(Theme.Colors.accent)
                 }
+                // v1.1.2 老人友善：28pt + semibold + accent 邊框，最顯眼
                 Text(vm.translatedText)
-                    .font(Theme.Font.body)
+                    .font(Theme.Font.translationEmphasized)
                     .foregroundStyle(Theme.Colors.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .padding(Theme.Spacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: Theme.Radius.md)
+                            .fill(Theme.Colors.accent.opacity(0.10))
+                    )
                     .textSelection(.enabled)
             }
             .glassCard()
