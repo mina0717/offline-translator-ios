@@ -158,8 +158,50 @@ final class SpeechASRService: ASRService {
         self.request = request
 
         // 3. 安裝 tap 到 input node
+        //
+        // v1.1.2 crash fix:
+        // 之前直接 inputNode.installTap(...) 在 iOS 26.4.1 上會觸發
+        //   AudioEngineModeBaseV3::CreateRecordingTap → EXC_CRASH (SIGABRT)
+        // 因為 outputFormat(forBus:) 在 session 還沒完全 active 時回傳
+        // 0-channel format，AVAudioEngine 直接 throw OC exception。
+        //
+        // 三道防禦：
+        //   (a) 先 reset engine 並 removeTap，避免重複 install
+        //   (b) 強制取 hardware input format（保證 channelCount > 0）
+        //   (c) 驗證 format 合法後才 install
         let inputNode = audioEngine.inputNode
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
+
+        // (a) 防禦：清掉舊 tap（如果使用者連續按錄音按鈕，第二次會 crash）
+        inputNode.removeTap(onBus: 0)
+
+        // (b) 取 hardware input format。比 outputFormat(forBus:) 更可靠 ——
+        // 這個值由 AVAudioSession 直接決定，不依賴 engine 內部狀態。
+        let recordingFormat: AVAudioFormat = {
+            let hwFormat = inputNode.inputFormat(forBus: 0)
+            if hwFormat.channelCount > 0 && hwFormat.sampleRate > 0 {
+                return hwFormat
+            }
+            // 後備：用 AVAudioSession 的 sampleRate + 單聲道、Float32
+            // 大多數 iPhone 是 48000 Hz mono
+            let sr = AVAudioSession.sharedInstance().sampleRate
+            return AVAudioFormat(
+                commonFormat: .pcmFormatFloat32,
+                sampleRate: sr > 0 ? sr : 48000,
+                channels: 1,
+                interleaved: false
+            ) ?? AVAudioFormat(standardFormatWithSampleRate: 48000, channels: 1)!
+        }()
+
+        // (c) 最終驗證
+        guard recordingFormat.channelCount > 0,
+              recordingFormat.sampleRate > 0 else {
+            throw ASRError.audioEngineFailed(
+                NSError(domain: "ASR", code: -100, userInfo: [
+                    NSLocalizedDescriptionKey: "麥克風格式無效（channels=\(recordingFormat.channelCount), sr=\(recordingFormat.sampleRate)）"
+                ])
+            )
+        }
+
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
             self?.request?.append(buffer)
         }
