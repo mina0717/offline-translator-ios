@@ -14,10 +14,12 @@ enum Language: String, CaseIterable, Identifiable, Codable, Hashable {
     var id: String { rawValue }
 
     /// BCP-47 語系代碼。Apple Translation / Speech / Vision 都用這個。
+    /// 英文用 `en-US`：SFSpeechRecognizer 對純 `en` locale 支援不穩，必須帶 region。
+    /// Apple Translation 框架對 `en-US` 也接受（會 fallback 到 `en`）。
     var bcp47: String {
         switch self {
         case .traditionalChinese: return "zh-Hant"
-        case .english:            return "en"
+        case .english:            return "en-US"
         }
     }
 
