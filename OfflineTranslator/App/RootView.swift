@@ -4,18 +4,20 @@ import UIKit
 /// App 進入點容器。負責：
 /// 1. 放上漸層背景
 /// 2. 包 NavigationStack
-/// 3. **掛載 Apple Translation bridge modifier**
-/// 4. **消費 AppIntents 丟過來的 pending 請求**
-/// 5. **v1.2.1：啟動時 pre-download 兩個方向語言包，避免使用者首次翻譯時等 10 分鐘**
+/// 3. **掛載 Apple Translation bridge modifier**（Mac 借機日驗證）
+/// 4. **消費 AppIntents 丟過來的 pending 請求**（v1.1 Codex fix）
 ///
 /// bridge modifier 只有在 MTService 是 `AppleMTService`（`.makeDefault()`）
 /// 時才會實際生效；Mock 模式下是 no-op。
+///
+/// ## v1.1.1 fix：path-based navigation + queue consumption
+/// 先前用 `navigationDestination(item:)` 綁單一 `IntentNavigation?`，
+/// 連兩個 intent 進來會讓 NavigationStack 疊兩層 TextTranslationView。
+/// 改用 `NavigationPath` 手動管理：每收到一筆 intent 先 `path = NavigationPath()`
+/// reset 回 Home，再 append 新目的地，確保同一時間只有一個翻譯畫面。
 struct RootView: View {
     @EnvironmentObject private var deps: AppDependencies
     @StateObject private var intentStore = IntentRequestStore.shared
-
-    /// v1.2.1：語言包預下載器（背景跑，UI 顯示進度條）
-    @StateObject private var packBootstrap = LanguagePackBootstrap()
 
     /// NavigationStack 的 path — 由我們自己管，避免 intent 重複 push 造成疊層。
     @State private var path = NavigationPath()
@@ -30,30 +32,22 @@ struct RootView: View {
                     }
             }
         }
-        // v1.1.3 critical fix：傳入 service 的 `bridge` instance（之前誤傳整個 service，
-        // 導致 modifier 收到 nil，所有翻譯請求 hang 到 CancellationError）。
+        // 把 AppleMTService 的 bridge 掛到 View tree 上，
+        // .translationTask modifier 才能在需要時執行翻譯與語言包下載。
         .appleTranslationBridge((deps.mtService as? AppleMTService)?.bridge)
         // v1.1 fix：監聽 Siri / Shortcuts 送過來的 queue；每次 queue 非空就消費首筆。
         .onReceive(intentStore.$queue.filter { !$0.isEmpty }) { _ in
             drainQueue()
         }
-        // v1.2.1：頂部 banner 顯示語言包下載進度
-        .safeAreaInset(edge: .top) {
-            if packBootstrap.isWorking {
-                LanguagePackDownloadBanner(bootstrap: packBootstrap)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-        // v1.2.1：啟動就 pre-download 兩個方向語言包
-        .task {
-            await packBootstrap.runIfNeeded(
-                mtService: deps.mtService as? AppleMTService
-            )
-        }
     }
 
+    /// 把 queue 裡能處理的請求全部 dequeue 並導航到對應畫面。
+    /// 用 `drainAll()` 一次取乾淨，避免 for-loop 中 `consume()` 的 @Published
+    /// 更新反覆觸發 onReceive 導致 reentrant。多筆 intent 時只保留最後一筆
+    /// 有效的請求（使用者意圖通常是最新那筆）。
     private func drainQueue() {
         let requests = intentStore.drainAll()
+        // 找出最後一個「可處理」的請求作為最終目的地
         var finalPrefill: String?
         var finalTarget: Language?
 
@@ -78,52 +72,19 @@ struct RootView: View {
     }
 
     private func pushTextTranslation(prefill: String, target: Language) {
+        // 先 pop 回 Home，再 push，避免同時存在兩個 TextTranslationView。
         path = NavigationPath()
         path.append(IntentNavigation(prefill: prefill, target: target))
     }
 }
 
+/// NavigationPath 的目的地 payload。
 private struct IntentNavigation: Hashable {
     let prefill: String
     let target: Language
 }
 
-// MARK: - LanguagePackDownloadBanner
-
-/// 頂部進度條：告訴使用者「正在下載語言包」，避免他們以為 App 壞了。
-/// 中文使用者導向：訊息全部用中文，按鈕標籤親切。
-private struct LanguagePackDownloadBanner: View {
-    @ObservedObject var bootstrap: LanguagePackBootstrap
-
-    var body: some View {
-        HStack(alignment: .center, spacing: Theme.Spacing.sm) {
-            ProgressView()
-                .progressViewStyle(.circular)
-                .scaleEffect(0.8)
-                .tint(.white)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(bootstrap.bannerMessage ?? "")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-
-                // 進度文字
-                Text("\(bootstrap.completedCount) / \(bootstrap.totalCount) 個方向已完成")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.8))
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, Theme.Spacing.md)
-        .padding(.vertical, Theme.Spacing.sm)
-        .background(Theme.Colors.accent.opacity(0.95))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .padding(.horizontal, Theme.Spacing.sm)
-        .padding(.top, Theme.Spacing.xs)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(bootstrap.bannerMessage ?? "下載語言包中")
-    }
+#Preview {
+    RootView()
+        .environmentObject(AppDependencies.makeMock())
 }
