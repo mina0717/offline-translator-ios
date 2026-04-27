@@ -130,6 +130,8 @@ jobs:
       # ────────────────────────────────────────────────────────────
       - name: Archive
         run: |
+          set -o pipefail
+          RAW_LOG="$RUNNER_TEMP/xcodebuild_raw.log"
           xcodebuild \
             -project "$PROJECT" \
             -scheme "$SCHEME" \
@@ -144,7 +146,16 @@ jobs:
             MARKETING_VERSION="${{ steps.versions.outputs.marketing_version }}" \
             CODE_SIGN_STYLE=Automatic \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            archive | xcpretty && exit ${PIPESTATUS[0]}
+            archive 2>&1 | tee "$RAW_LOG" | xcpretty || ARCHIVE_EXIT=$?
+          if [ "${ARCHIVE_EXIT:-0}" != "0" ]; then
+            echo ""
+            echo "==================== RAW XCODEBUILD ERRORS ===================="
+            grep -E "error:|warning:|fatal error:|^\\*\\* " "$RAW_LOG" | head -200 || true
+            echo ""
+            echo "==================== LAST 200 LINES OF RAW LOG ===================="
+            tail -200 "$RAW_LOG"
+            exit "${ARCHIVE_EXIT}"
+          fi
 
       # ────────────────────────────────────────────────────────────
       # 7. Export IPA (app-store)
