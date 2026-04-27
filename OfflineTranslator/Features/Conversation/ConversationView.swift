@@ -202,8 +202,7 @@ private struct ChatScroll: View {
                             ConversationBubble(
                                 turn: turn,
                                 selfLanguage: selfLanguage,
-                                onReplay: { Task { await vm.replay(turn: turn) } },
-                                onRetry: { Task { await vm.retryTurn(turn) } }
+                                onReplay: { Task { await vm.replay(turn: turn) } }
                             )
                             .id("\(scrollAnchorId)-\(turn.id)")
                         }
@@ -257,17 +256,11 @@ private struct ChatScroll: View {
 
 // MARK: - ConversationBubble
 
-/// 對話氣泡：v1.2.1 修正
-/// 規則：翻譯成功 / 失敗 / 進行中，都**永遠保留雙邊文字**（原文 + 譯文/狀態）
-/// - 自己說的：靠右；原文較大、譯文較小
-/// - 對方說的：靠左；譯文較大（我看得懂的語言）、原文較小
-/// - 翻譯失敗：顯示重試按鈕
-/// - 翻譯進行中：顯示「翻譯中…」灰字
+/// 對話氣泡：自己說的靠右、對方說的靠左（依 selfLanguage 判定）
 private struct ConversationBubble: View {
     let turn: ConversationTurn
     let selfLanguage: Language
     let onReplay: () -> Void
-    let onRetry: () -> Void
 
     private var isSelf: Bool { turn.speaker == selfLanguage }
 
@@ -275,18 +268,33 @@ private struct ConversationBubble: View {
         HStack(alignment: .top) {
             if isSelf { Spacer(minLength: 30) }
             VStack(alignment: isSelf ? .trailing : .leading, spacing: 4) {
+                // 在這個視角下：
+                // - 自己說的：原文是給「我」確認系統有正確聽到
+                // - 對方說的：譯文是給「我」看懂他在說什麼
                 if isSelf {
-                    // 自己說的話：原文（自己的語言）大字、譯文小字
+                    // 自己說的話：顯示原文（自己的語言）較大
                     Text(turn.originalText)
                         .font(Theme.Font.body)
                         .foregroundStyle(Theme.Colors.textPrimary)
                         .multilineTextAlignment(.trailing)
-
-                    translationPart(alignmentTrailing: true)
+                    Text(turn.translatedText)
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.accent)
+                        .multilineTextAlignment(.trailing)
                 } else {
-                    // 對方說的話：譯文（自己的語言）大字、原文小字
-                    translationPart(alignmentTrailing: false)
-
+                    // 對方說的話：譯文（我的語言）較大，原文小字附加
+                    HStack(alignment: .top, spacing: 6) {
+                        Button(action: onReplay) {
+                            Image(systemName: "speaker.wave.2.fill")
+                                .font(.system(size: 14))
+                                .foregroundStyle(Theme.Colors.accent)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("再聽一次")
+                        Text(turn.translatedText)
+                            .font(Theme.Font.body)
+                            .foregroundStyle(Theme.Colors.textPrimary)
+                    }
                     Text(turn.originalText)
                         .font(Theme.Font.caption)
                         .foregroundStyle(Theme.Colors.textSecondary)
@@ -299,69 +307,6 @@ private struct ConversationBubble: View {
                     .fill(.ultraThinMaterial)
             )
             if !isSelf { Spacer(minLength: 30) }
-        }
-    }
-
-    /// 譯文 / 錯誤 / 進行中 — 三態
-    @ViewBuilder
-    private func translationPart(alignmentTrailing: Bool) -> some View {
-        if let err = turn.translationError {
-            // 翻譯失敗：顯示錯誤 + 重試
-            HStack(spacing: 6) {
-                if !alignmentTrailing {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.orange)
-                }
-                VStack(alignment: alignmentTrailing ? .trailing : .leading, spacing: 2) {
-                    Text(err)
-                        .font(Theme.Font.caption)
-                        .foregroundStyle(.orange)
-                        .multilineTextAlignment(alignmentTrailing ? .trailing : .leading)
-                    Button("重試", action: onRetry)
-                        .font(Theme.Font.caption)
-                        .foregroundStyle(Theme.Colors.accent)
-                }
-                if alignmentTrailing {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.orange)
-                }
-            }
-        } else if turn.translatedText.isEmpty {
-            // 翻譯進行中（已加入歷史，等待結果）
-            HStack(spacing: 6) {
-                ProgressView().scaleEffect(0.7)
-                Text("翻譯中…")
-                    .font(Theme.Font.caption)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            }
-        } else {
-            // 翻譯成功：譯文 + 喇叭
-            HStack(alignment: .center, spacing: 6) {
-                if !alignmentTrailing {
-                    Button(action: onReplay) {
-                        Image(systemName: "speaker.wave.2.fill")
-                            .font(.system(size: 14))
-                            .foregroundStyle(Theme.Colors.accent)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("再聽一次")
-                }
-                Text(turn.translatedText)
-                    .font(alignmentTrailing ? Theme.Font.caption : Theme.Font.body)
-                    .foregroundStyle(alignmentTrailing ? Theme.Colors.accent : Theme.Colors.textPrimary)
-                    .multilineTextAlignment(alignmentTrailing ? .trailing : .leading)
-                if alignmentTrailing {
-                    Button(action: onReplay) {
-                        Image(systemName: "speaker.wave.2.fill")
-                            .font(.system(size: 14))
-                            .foregroundStyle(Theme.Colors.accent)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("再聽一次")
-                }
-            }
         }
     }
 }
