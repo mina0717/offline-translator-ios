@@ -128,10 +128,11 @@ private struct TextTranslationContent: View {
         }
         // v1.1.2 UX：捲動時自動隱藏鍵盤，避免鍵盤遮畫面
         .scrollDismissesKeyboard(.interactively)
-        // v1.1.2 UX：輸入文字變化 → 自動翻譯（debounced 600ms）
-        .onChange(of: vm.inputText) { _, _ in
-            vm.onInputChanged()
-        }
+        // v1.2.1：移除 onChange 自動翻譯。原因：
+        // 1. 自動翻譯每打字就送 request，但語言包還沒下載好時會排隊互相取消
+        //    → 使用者看到「Swift.CancellationError」+ 5 分鐘後才能用
+        // 2. 改回手動「翻譯」按鈕（在 inputCard 裡）—— 簡單、可預期
+        // 等語言包確定都已下載 + UX 驗證後再考慮加回 auto-translate
     }
 
     // MARK: - Subviews
@@ -192,8 +193,38 @@ private struct TextTranslationContent: View {
                         .foregroundStyle(Theme.Colors.textSecondary)
                 }
             }
+
+            // v1.2.1：恢復「翻譯」按鈕（移除自動翻譯後的主要操作）
+            Button {
+                inputFocused = false  // 收鍵盤
+                Task { await vm.translate() }
+            } label: {
+                HStack(spacing: 6) {
+                    if vm.isLoading {
+                        ProgressView().tint(.white).scaleEffect(0.85)
+                    } else {
+                        Image(systemName: "arrow.right.circle.fill")
+                    }
+                    Text(vm.isLoading ? "翻譯中…" : "翻譯")
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.Radius.md)
+                        .fill(buttonEnabled ? Theme.Colors.accent : Theme.Colors.accent.opacity(0.4))
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(!buttonEnabled)
+            .accessibilityLabel("翻譯")
         }
         .glassCard()
+    }
+
+    private var buttonEnabled: Bool {
+        !vm.isLoading && !vm.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     /// 字元數指示器：綠色 < 80%、琥珀 80%+、紅色 >= 100%
@@ -236,7 +267,7 @@ private struct TextTranslationContent: View {
                 .frame(minHeight: 120)
             } else {
                 // v1.1.2 老人友善：譯文用 28pt + medium weight，最醒目
-                Text(vm.outputText.isEmpty ? "輸入文字後會自動翻譯" : vm.outputText)
+                Text(vm.outputText.isEmpty ? "輸入文字後點「翻譯」按鈕" : vm.outputText)
                     .font(Theme.Font.translationEmphasized)
                     .foregroundStyle(
                         vm.outputText.isEmpty
