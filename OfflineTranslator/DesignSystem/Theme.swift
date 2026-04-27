@@ -4,7 +4,7 @@ import UIKit
 /// 全 App 共用的色票、字型、圓角、間距 token。
 /// 所有 UI 都應該透過 `Theme` 取值，禁止在 View 內硬寫色碼。
 ///
-/// v1.1：色彩從靜態 Color 改為「亯/深雙套」動態 Color，
+/// v1.1：色彩從靜態 Color 改為「亮/深雙套」動態 Color，
 ///       透過 `Color(uiColor: UIColor { traits in ... })` 在系統切換時自動跟著換。
 enum Theme {
 
@@ -85,12 +85,29 @@ enum Theme {
     }
 
     // MARK: - Typography
+    //
+    // v1.1.2 老人友善：所有字體放大 ~25-40%。原值見註解。
+    // 翻譯內容用 `translation` 字型（更大、更易讀）。
 
     enum Font {
-        static let largeTitle = SwiftUI.Font.system(size: 32, weight: .bold,    design: .rounded)
-        static let title      = SwiftUI.Font.system(size: 24, weight: .semibold, design: .rounded)
-        static let headline   = SwiftUI.Font.system(size: 18, weight: .semibold, design: .rounded)
-        static let body       = SwiftUI.Font.system(size: 16, weight: .regular,  design: .rounded)
-        static let caption    = SwiftUI.Font.system(size: 13, weight: .regular,  design: .rounded)
+        /// 32 → 36 (主標題)
+        static let largeTitle = SwiftUI.Font.system(size: 36, weight: .bold,     design: .rounded)
+        /// 24 → 30
+        static let title      = SwiftUI.Font.system(size: 30, weight: .semibold, design: .rounded)
+        /// 18 → 24
+        static let headline   = SwiftUI.Font.system(size: 24, weight: .semibold, design: .rounded)
+        /// 16 → 20（一般內文 / button label）
+        static let body       = SwiftUI.Font.system(size: 20, weight: .regular,  design: .rounded)
+        /// 13 → 16（次要 label / 字數計數器）
+        static let caption    = SwiftUI.Font.system(size: 16, weight: .regular,  design: .rounded)
+
+        /// **v1.1.2 新增**：翻譯內容專用字型（原文 + 譯文）。
+        /// 用最大字級確保中老年使用者讀得清楚。
+        /// 26pt + medium weight，比 body 還醒目。
+        static let translation = SwiftUI.Font.system(size: 26, weight: .medium,  design: .rounded)
+
+        /// **v1.1.2 新增**：翻譯結果的「強調版」 — 用於目標語言譯文。
+        /// 28pt + semibold，視覺重量比原文更重，讓使用者一眼看到結果。
+        static let translationEmphasized = SwiftUI.Font.system(size: 28, weight: .semibold, design: .rounded)
     }
 }
