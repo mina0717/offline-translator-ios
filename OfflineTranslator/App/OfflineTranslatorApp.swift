@@ -4,9 +4,9 @@ import SwiftData
 @main
 struct OfflineTranslatorApp: App {
 
-    // MVP 階段：預設用全 Mock 組裝（文字翻譯會走通，其他有 Mock 資料），
-    // Day 4 串 Apple Translation 前改成 `.makeDefault()`。
-    @StateObject private var deps = AppDependencies.makeMock()
+    // 上線版本：使用真實的 Apple Translation / Speech / Vision services。
+    // 開發 / Preview 才用 `.makeMock()`（會回傳假資料、不打到系統 framework）。
+    @StateObject private var deps = AppDependencies.makeDefault()
 
     // v1.1：啟動時初始化 TipKit（新手引導）
     init() {
