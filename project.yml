@@ -54,6 +54,10 @@ targets:
     dependencies:
       - target: OfflineTranslatorShare
         embed: true
+      - sdk: Translation.framework
+      - sdk: Speech.framework
+      - sdk: Vision.framework
+      - sdk: AVFoundation.framework
   OfflineTranslatorShare:
     type: app-extension
     platform: iOS
