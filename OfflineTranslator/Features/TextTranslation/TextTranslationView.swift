@@ -86,13 +86,16 @@ private struct TextTranslationContent: View {
     private static let softCharacterLimit = 2000
     private static let warnThreshold = 1600  // 80% 時變琥珀色提醒
 
+    // v1.1.3：用 @FocusState 控制輸入焦點，確保點擊一定喚起鍵盤
+    @FocusState private var inputFocused: Bool
+
     var body: some View {
         ScrollView {
             VStack(spacing: Theme.Spacing.md) {
                 languageSelector
-                // v1.1.2 UX：譯文卡放在輸入卡上方，使用者輸入時不用低頭看
-                outputCard
+                // v1.1.3 改回：輸入卡在上、譯文卡在下（譯文出現後 ScrollView 自動捲到結果）
                 inputCard
+                outputCard
 
                 if let msg = vm.errorMessage {
                     HStack(alignment: .top, spacing: Theme.Spacing.sm) {
@@ -165,24 +168,19 @@ private struct TextTranslationContent: View {
                     .foregroundStyle(Theme.Colors.accent)
             }
 
+            // v1.1.3 fix: 移除 .toolbar(placement: .keyboard) 修飾符。
+            // 該修飾符與 ScrollView + .scrollDismissesKeyboard 衝突，
+            // 導致 v1.1.2 出現「點擊 TextEditor 喚不起鍵盤」的 regression。
+            // 改用 @FocusState 確保點擊行為正常。
             TextEditor(text: $vm.inputText)
-                .font(Theme.Font.translation)         // v1.1.2 老人友善：26pt
+                .font(Theme.Font.translation)         // 老人友善：26pt
                 .scrollContentBackground(.hidden)
-                .frame(minHeight: 140)                 // 字大 → 同行高需求變大
+                .frame(minHeight: 140)
                 .foregroundStyle(Theme.Colors.textPrimary)
-                // v1.1.2 UX：上方加 toolbar「完成」按鈕讓使用者可關鍵盤
-                .toolbar {
-                    ToolbarItemGroup(placement: .keyboard) {
-                        Spacer()
-                        Button("完成") {
-                            UIApplication.shared.sendAction(
-                                #selector(UIResponder.resignFirstResponder),
-                                to: nil, from: nil, for: nil
-                            )
-                        }
-                        .font(Theme.Font.body)
-                        .foregroundStyle(Theme.Colors.accent)
-                    }
+                .focused($inputFocused)
+                .onTapGesture {
+                    // 確保點擊一定 focus（修 v1.1.2 regression）
+                    inputFocused = true
                 }
 
             if !vm.inputText.isEmpty {
