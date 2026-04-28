@@ -245,36 +245,41 @@ struct AppleTranslationBridgeModifier: ViewModifier {
     let bridge: AppleTranslationBridge?
 
     @State private var currentConfig: TranslationSession.Configuration?
+    // v1.2.2：記住目前 config 的 source/target，避免相同語言對重建 session
+    @State private var currentSource: String?
+    @State private var currentTarget: String?
 
     func body(content: Content) -> some View {
         content
             .onChange(of: bridge?.pending) { _, newValue in
                 guard let p = newValue else { return }
-                currentConfig = .init(
-                    source: Locale.Language(identifier: p.source),
-                    target: Locale.Language(identifier: p.target)
-                )
+                applyConfig(source: p.source, target: p.target)
             }
             .onChange(of: bridge?.pendingPrepare) { _, newValue in
                 guard let p = newValue else { return }
-                currentConfig = .init(
-                    source: Locale.Language(identifier: p.source),
-                    target: Locale.Language(identifier: p.target)
-                )
+                applyConfig(source: p.source, target: p.target)
             }
             .translationTask(currentConfig) { session in
-                // ⚠️ Mac 實測項 #3~#5：下列呼叫是否如預期執行
                 guard let bridge else { return }
 
                 // 1. 優先處理翻譯請求
+                //   v1.2.2：跳過 prepareTranslation()，因為 service 端已在 translate(text:pair:)
+                //   先用 LanguageAvailability 檢查過 .ready 才會送進來，
+                //   每次都呼叫 prepareTranslation() 會多花 1-3 秒，是先前「轉超久」的主因。
                 if let pending = bridge.pending {
                     do {
-                        // 先確保語言包已下載，否則 session.translate 會丟錯
-                        try await session.prepareTranslation()
                         let response = try await session.translate(pending.text)
                         bridge.finishTranslate(text: response.targetText)
                     } catch {
-                        bridge.failTranslate(error: TranslationError.underlying(error))
+                        // 後援：若 session.translate 直接失敗（例如語言包剛被刪除），
+                        // 補打 prepareTranslation 再重試一次。
+                        do {
+                            try await session.prepareTranslation()
+                            let retry = try await session.translate(pending.text)
+                            bridge.finishTranslate(text: retry.targetText)
+                        } catch {
+                            bridge.failTranslate(error: TranslationError.underlying(error))
+                        }
                     }
                 }
 
@@ -288,6 +293,23 @@ struct AppleTranslationBridgeModifier: ViewModifier {
                     }
                 }
             }
+    }
+
+    /// v1.2.2：只在語言對真的變了才重建 session；
+    /// 同一語言對的下一筆請求改用 `invalidate()` 觸發 `.translationTask` 重跑，
+    /// 沿用同一個 session 大幅減少首次建立的延遲。
+    private func applyConfig(source: String, target: String) {
+        if source == currentSource && target == currentTarget,
+           let cfg = currentConfig {
+            cfg.invalidate()
+        } else {
+            currentSource = source
+            currentTarget = target
+            currentConfig = .init(
+                source: Locale.Language(identifier: source),
+                target: Locale.Language(identifier: target)
+            )
+        }
     }
 }
 
