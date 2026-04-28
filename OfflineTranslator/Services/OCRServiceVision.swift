@@ -84,10 +84,13 @@ final class VisionOCRService: OCRService {
     }
 
     /// 給 OCR 的候選辨識語言。主要語言放第一位。
+    /// v1.2.5：土耳其文 — Vision 沒有原生 tr-TR OCR，用 en-US（拉丁字母）近似辨識。
+    /// 不適用於印章/手寫等非標準字體，使用者期待值需要管理。
     private static func recognitionLanguages(for language: Language) -> [String] {
         switch language {
         case .traditionalChinese: return ["zh-Hant", "en-US"]
         case .english:            return ["en-US", "zh-Hant"]
+        case .turkish:            return ["en-US"]
         }
     }
 }

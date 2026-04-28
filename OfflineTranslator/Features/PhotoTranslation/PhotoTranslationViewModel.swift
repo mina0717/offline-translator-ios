@@ -43,10 +43,16 @@ final class PhotoTranslationViewModel: ObservableObject {
     // MARK: - Dependencies
 
     private let useCase: PhotoTranslateUseCase
+    /// v1.2.5：用 NLLanguageRecognizer 對 OCR 結果做語言偵測，自動切 source
+    private let detector: LanguageDetector
 
-    init(useCase: PhotoTranslateUseCase) {
+    init(useCase: PhotoTranslateUseCase, detector: LanguageDetector = LanguageDetector()) {
         self.useCase = useCase
+        self.detector = detector
     }
+
+    /// v1.2.5：偵測到不支援的語言時，顯示給使用者看的提示
+    @Published var detectionHint: String?
 
     // MARK: - Derived
 
@@ -88,6 +94,7 @@ final class PhotoTranslationViewModel: ObservableObject {
     /// 使用者挑了一張圖（相機 / 相簿）
     func process(image: UIImage) async {
         errorMessage = nil
+        detectionHint = nil
         pickedImage = image
         regions = []
         phase = .recognizing
@@ -103,6 +110,21 @@ final class PhotoTranslationViewModel: ObservableObject {
             return
         }
         regions = detected
+
+        // v1.2.5：用 OCR 出來的所有文字做語言偵測
+        let mergedForDetect = detected.prefix(20).map { $0.text }.joined(separator: " ")
+        if let auto = detector.detect(mergedForDetect), auto != sourceLanguage {
+            // 偵測到的語言跟使用者選的不同 → 自動切過去（如果 target 衝突再補救）
+            sourceLanguage = auto
+            if !availableTargets.contains(targetLanguage) {
+                targetLanguage = availableTargets.first ?? .traditionalChinese
+            }
+            detectionHint = "已自動切換到偵測語言：\(auto.flag) \(auto.displayName)"
+        } else if let raw = detector.detectRawCode(mergedForDetect),
+                  Language(forNLCode: raw) == nil {
+            // 偵測到但不在支援清單（例如 hr / ar / ja）
+            detectionHint = "偵測到 \(raw)，但目前未支援，仍以 \(sourceLanguage.displayName) 嘗試翻譯"
+        }
 
         // 2. 每塊獨立翻譯
         await translateExistingRegions()

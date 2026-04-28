@@ -27,6 +27,21 @@ final class AVFoundationTTSService: NSObject, TTSService {
         // 確保前一段先停掉
         stop()
 
+        // v1.2.5 critical fix：強制把 audio session 切到 .playback
+        // 之前對話 / 語音翻譯先跑 ASR 把 session 設成 .record，
+        // 結束後雖然 setActive(false) 但 category 沒變回 playback，
+        // 導致使用者按喇叭圖示沒聲音（AVSpeechSynthesizer 在 .record 上不發聲）
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default, options: [.duckOthers])
+            try session.setActive(true, options: [])
+        } catch {
+            #if DEBUG
+            print("⚠️ TTS audio session setup failed: \(error)")
+            #endif
+            // 不擋朗讀：即使切換失敗，先試著直接 speak（某些情境 iOS 自己會處理）
+        }
+
         let utterance = AVSpeechUtterance(string: trimmed)
         utterance.voice = AVSpeechSynthesisVoice(language: language.bcp47)
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate

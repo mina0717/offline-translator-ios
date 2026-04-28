@@ -256,6 +256,7 @@ final class SpeechASRService: ASRService {
         switch language {
         case .traditionalChinese: return Locale(identifier: "zh-TW")
         case .english:            return Locale(identifier: "en-US")
+        case .turkish:            return Locale(identifier: "tr-TR")
         }
     }
 }
