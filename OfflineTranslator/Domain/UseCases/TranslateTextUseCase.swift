@@ -34,13 +34,19 @@ struct DefaultTranslateTextUseCase: TranslateTextUseCase {
             createdAt: Date()
         )
 
-        // 3. 寫入歷史紀錄（失敗不阻擋主流程，只記 log）
-        do {
-            try await history.save(result)
-        } catch {
-            #if DEBUG
-            print("⚠️ HistoryRepository.save failed: \(error)")
-            #endif
+        // 3. 寫入歷史紀錄
+        //    v1.2.2：fire-and-forget — translate() 立刻返回，
+        //    SwiftData 寫入在背景跑，UI 不會被 context.save() 卡住。
+        let toSave = result
+        let repo = history
+        Task.detached {
+            do {
+                try await repo.save(toSave)
+            } catch {
+                #if DEBUG
+                print("⚠️ HistoryRepository.save failed: \(error)")
+                #endif
+            }
         }
 
         return result

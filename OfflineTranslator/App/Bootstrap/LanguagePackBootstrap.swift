@@ -58,6 +58,8 @@ final class LanguagePackBootstrap: ObservableObject {
                 failureMessage = "下載語言包失敗：\(error.localizedDescription)"
                 return
             }
+            // v1.2.2：剛下載完，清掉 status 快取讓下一次翻譯重新確認 .ready
+            mt.invalidateLanguagePackStatusCache()
             completedCount += 1
         }
 

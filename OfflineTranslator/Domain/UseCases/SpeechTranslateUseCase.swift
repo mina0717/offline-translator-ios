@@ -45,7 +45,12 @@ struct DefaultSpeechTranslateUseCase: SpeechTranslateUseCase {
             pair: pair,
             createdAt: Date()
         )
-        try? await history.save(result)
+        // v1.2.2：fire-and-forget，避免 SwiftData 寫入卡住對話流程
+        let toSave = result
+        let repo = history
+        Task.detached {
+            try? await repo.save(toSave)
+        }
         return result
     }
 

@@ -64,6 +64,20 @@ final class AppleMTService: MTService {
     // 單例 bridge，View 端與 Service 層共用同一個 session pipeline
     let bridge = AppleTranslationBridge()
 
+    // v1.2.2：語言包狀態快取。每次翻譯都呼叫 LanguageAvailability().status(...)
+    // 是 100-300ms 的 Apple framework 同步呼叫，1 分鐘內快取，避免重複付費。
+    private struct StatusCacheEntry {
+        let status: LanguagePackStatus
+        let timestamp: Date
+    }
+    private var statusCache: [String: StatusCacheEntry] = [:]
+    private static let statusCacheTTL: TimeInterval = 60
+
+    /// v1.2.2：bootstrap / 下載完成時可手動清快取，下一次 translate 會重新檢查。
+    func invalidateLanguagePackStatusCache() {
+        statusCache.removeAll()
+    }
+
     // MARK: MTService.translate
 
     func translate(text: String, pair: LanguagePair) async throws -> String {
@@ -85,7 +99,7 @@ final class AppleMTService: MTService {
         throw TranslationError.underlying(NSError(
             domain: "AppleMTService",
             code: -2,
-            userInfo: [NSLocalizedDescriptionKey: "Translation framework 不可用（需 iOS 17.4+）"]
+            userInfo: [NSLocalizedDescriptionKey: "Apple 翻譯框架不可用（需要 iOS 17.4 以上）"]
         ))
         #endif
     }
@@ -95,17 +109,34 @@ final class AppleMTService: MTService {
     func languagePackStatus(for pair: LanguagePair) async throws -> LanguagePackStatus {
         #if canImport(Translation)
         guard pair.isSupported else { return .notDownloaded }
+
+        // v1.2.2：先查快取。.ready 狀態用 60s TTL（不太可能突然消失）；
+        // 其他狀態不快取，讓使用者下載完語言包後立刻反映。
+        let key = "\(pair.source.bcp47)→\(pair.target.bcp47)"
+        if let cached = statusCache[key],
+           cached.status == .ready,
+           Date().timeIntervalSince(cached.timestamp) < Self.statusCacheTTL {
+            return cached.status
+        }
+
         let availability = LanguageAvailability()
         let status = await availability.status(
             from: Locale.Language(identifier: pair.source.bcp47),
             to:   Locale.Language(identifier: pair.target.bcp47)
         )
+        let mapped: LanguagePackStatus
         switch status {
-        case .installed:   return .ready
-        case .supported:   return .notDownloaded
-        case .unsupported: return .failed(message: "Apple Translation 不支援 \(pair.source.displayName) → \(pair.target.displayName)")
-        @unknown default:  return .notDownloaded
+        case .installed:   mapped = .ready
+        case .supported:   mapped = .notDownloaded
+        case .unsupported: mapped = .failed(message: "Apple 翻譯尚不支援 \(pair.source.displayName) → \(pair.target.displayName)")
+        @unknown default:  mapped = .notDownloaded
         }
+        if mapped == .ready {
+            statusCache[key] = .init(status: mapped, timestamp: Date())
+        } else {
+            statusCache.removeValue(forKey: key)
+        }
+        return mapped
         #else
         return .notDownloaded
         #endif
@@ -180,8 +211,11 @@ final class AppleTranslationBridge {
 
     func requestTranslation(text: String, pair: LanguagePair) async throws -> String {
         try await withCheckedThrowingContinuation { cont in
-            // 若已有排隊中的請求，取消它（MVP：後蓋前）
-            translateContinuation?.resume(throwing: CancellationError())
+            // v1.2.2：先取出舊 continuation 再清，避免 finish callback 同時觸發造成 double resume
+            if let old = translateContinuation {
+                translateContinuation = nil
+                old.resume(throwing: CancellationError())
+            }
             translateContinuation = cont
             pending = .init(
                 id: UUID(),
@@ -194,7 +228,10 @@ final class AppleTranslationBridge {
 
     func requestPrepare(pair: LanguagePair) async throws {
         try await withCheckedThrowingContinuation { cont in
-            prepareContinuation?.resume(throwing: CancellationError())
+            if let old = prepareContinuation {
+                prepareContinuation = nil
+                old.resume(throwing: CancellationError())
+            }
             prepareContinuation = cont
             pendingPrepare = .init(
                 id: UUID(),
@@ -207,28 +244,33 @@ final class AppleTranslationBridge {
 
     // MARK: View 端呼叫（由 .translationTask callback）
 
+    /// v1.2.2：保證每個 continuation 只 resume 一次
     func finishTranslate(text: String) {
-        translateContinuation?.resume(returning: text)
+        guard let cont = translateContinuation else { pending = nil; return }
         translateContinuation = nil
         pending = nil
+        cont.resume(returning: text)
     }
 
     func failTranslate(error: Error) {
-        translateContinuation?.resume(throwing: error)
+        guard let cont = translateContinuation else { pending = nil; return }
         translateContinuation = nil
         pending = nil
+        cont.resume(throwing: error)
     }
 
     func finishPrepare() {
-        prepareContinuation?.resume(returning: ())
+        guard let cont = prepareContinuation else { pendingPrepare = nil; return }
         prepareContinuation = nil
         pendingPrepare = nil
+        cont.resume(returning: ())
     }
 
     func failPrepare(error: Error) {
-        prepareContinuation?.resume(throwing: error)
+        guard let cont = prepareContinuation else { pendingPrepare = nil; return }
         prepareContinuation = nil
         pendingPrepare = nil
+        cont.resume(throwing: error)
     }
 }
 
@@ -298,10 +340,12 @@ struct AppleTranslationBridgeModifier: ViewModifier {
     /// v1.2.2：只在語言對真的變了才重建 session；
     /// 同一語言對的下一筆請求改用 `invalidate()` 觸發 `.translationTask` 重跑，
     /// 沿用同一個 session 大幅減少首次建立的延遲。
+    /// invalidate() 是 mutating，必須透過 var 暫存後寫回 @State，否則無法呼叫。
     private func applyConfig(source: String, target: String) {
-        if source == currentSource && target == currentTarget,
-           let cfg = currentConfig {
-            cfg.invalidate()
+        if source == currentSource && target == currentTarget && currentConfig != nil {
+            var cfg = currentConfig
+            cfg?.invalidate()
+            currentConfig = cfg
         } else {
             currentSource = source
             currentTarget = target

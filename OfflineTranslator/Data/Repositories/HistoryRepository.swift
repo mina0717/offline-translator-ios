@@ -38,7 +38,8 @@ final class SwiftDataHistoryRepository: HistoryRepository {
         var descriptor = FetchDescriptor<TranslationRecord>(
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
-        if let limit { descriptor.fetchLimit = limit }
+        // v1.2.2：預設只抓最近 200 筆，避免歷史多時 History 頁卡住
+        descriptor.fetchLimit = limit ?? 200
         let records = try context.fetch(descriptor)
         return records.compactMap { $0.toResult() }
     }

@@ -82,6 +82,11 @@ final class ConversationViewModel: ObservableObject {
         self.useCase = useCase
     }
 
+    /// v1.2.2：避免 task / 麥克風在 ViewModel 已釋放後仍在跑
+    deinit {
+        recognitionTask?.cancel()
+    }
+
     // MARK: - Derived
 
     var isRecording: Bool {
@@ -107,6 +112,9 @@ final class ConversationViewModel: ObservableObject {
     /// 對調兩邊語言。會清空對話歷史，因為翻譯方向變了。
     func swapSides() {
         guard !isRecording && !isBusy else { return }
+        // v1.2.2：保險清掉殘留 task（理論上 idle 階段不該有，但避免極端 race）
+        recognitionTask?.cancel()
+        recognitionTask = nil
         let old = sideALanguage
         sideALanguage = sideBLanguage
         sideBLanguage = old

@@ -33,7 +33,12 @@ struct DefaultPhotoTranslateUseCase: PhotoTranslateUseCase {
             pair: pair,
             createdAt: Date()
         )
-        try? await history.save(result)
+        // v1.2.2：fire-and-forget，OCR 翻譯不必等寫歷史
+        let toSave = result
+        let repo = history
+        Task.detached {
+            try? await repo.save(toSave)
+        }
         return result
     }
 }
