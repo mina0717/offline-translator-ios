@@ -388,7 +388,8 @@ private struct ImageWithOverlay: View {
         .aspectRatio(image.size, contentMode: .fit)
     }
 
-    /// v1.2.7：嚴格限制在 bbox 內的小 chip
+    /// v1.2.8：chip 跟著文字長度延伸（不再嚴格 bbox），畫面恢復可讀；
+    /// 重疊問題改用「tap 任一塊跳出 popover 蓋過鄰居」解決，不靠 chip 本身擠滿小字。
     @ViewBuilder
     private func chipView(
         region: OCRRegion, translated: String,
@@ -401,19 +402,20 @@ private struct ImageWithOverlay: View {
         let bh = region.boundingBox.height * drawnSize.height
 
         Text(translated)
-            .font(.system(size: max(9, bh * 0.7), weight: .semibold))
+            .font(.system(size: max(13, bh * 0.7), weight: .semibold))
             .foregroundStyle(.black)
             .lineLimit(2)
-            .minimumScaleFactor(0.3)
-            .padding(.horizontal, 3)
-            .padding(.vertical, 1)
-            // 嚴格用 bbox 寬高，不溢出 → 不會互相重疊
-            .frame(width: bw, height: max(bh, 14), alignment: .leading)
+            .minimumScaleFactor(0.5)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            // chip 寬度跟譯文長度走，最小 max(bw, 50) 讓短字也好點
+            .frame(minWidth: max(bw, 50), alignment: .leading)
+            .fixedSize(horizontal: true, vertical: true)
             .background(
-                RoundedRectangle(cornerRadius: 3)
+                RoundedRectangle(cornerRadius: 5)
                     .fill(Color.white.opacity(0.95))
+                    .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 3))
             .position(x: bx + bw / 2, y: by + bh / 2)
             .contentShape(Rectangle())
             .onTapGesture {
