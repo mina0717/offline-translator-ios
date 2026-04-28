@@ -89,37 +89,43 @@ def main() -> int:
         print("Nothing to clean up")
         return 0
 
-    # 按 createdDate 由新到舊排序
+    # ASC API 的 Certificate.attributes 沒有 createdDate；用 expirationDate 反推：
+    # cert 通常 1 年到期，所以「expirationDate 越晚 = 建立越新」。
     sorted_certs = sorted(
         certs,
-        key=lambda c: c["attributes"]["createdDate"],
+        key=lambda c: c["attributes"].get("expirationDate", ""),
         reverse=True,
     )
 
-    print("\nAll dev certs (newest first):")
+    print("\nAll dev certs (newest first by expiration):")
     for c in sorted_certs:
         attr = c["attributes"]
         print(f"  - {c['id']} | {attr.get('name', '')} | "
-              f"{attr['certificateType']} | created={attr['createdDate']}")
+              f"{attr.get('certificateType', '')} | "
+              f"expires={attr.get('expirationDate', 'unknown')}")
 
-    threshold = datetime.now(timezone.utc) - timedelta(days=REVOKE_OLDER_THAN_DAYS)
+    # 「建立超過 3 天」≈「到期 < 365-3=362 天後」
+    threshold = datetime.now(timezone.utc) + timedelta(days=365 - REVOKE_OLDER_THAN_DAYS)
     candidates = sorted_certs[KEEP_COUNT:]
     to_revoke: list[dict] = []
     for c in candidates:
-        created = datetime.fromisoformat(
-            c["attributes"]["createdDate"].replace("Z", "+00:00")
-        )
-        if created < threshold:
+        exp_str = c["attributes"].get("expirationDate")
+        if not exp_str:
+            # 沒 expirationDate 就直接候選撤銷
+            to_revoke.append(c)
+            continue
+        exp = datetime.fromisoformat(exp_str.replace("Z", "+00:00"))
+        if exp < threshold:
             to_revoke.append(c)
 
     print(f"\nWill keep newest {KEEP_COUNT}; revoking {len(to_revoke)} cert(s) "
-          f"older than {REVOKE_OLDER_THAN_DAYS} days")
+          f"established more than {REVOKE_OLDER_THAN_DAYS} days ago")
 
     failures = 0
     for c in to_revoke:
         cid = c["id"]
         attr = c["attributes"]
-        print(f"  Revoking {cid} ({attr.get('name', '')}, {attr['createdDate']})...", end=" ")
+        print(f"  Revoking {cid} ({attr.get('name', '')}, expires={attr.get('expirationDate', '')})...", end=" ")
         ok, err = revoke_cert(token, cid)
         if ok:
             print("ok")
