@@ -1,0 +1,33 @@
+name: Apple Cert Cleanup
+
+# 每週日 UTC 00:00 自動清理過量的 Development 證書，避免 CI archive 反覆撞配額。
+# 也可手動觸發（Actions 頁 → Run workflow）。
+on:
+  schedule:
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    name: Revoke old development certificates
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install pyjwt cryptography requests
+
+      - name: Run cleanup
+        env:
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        run: python .github/scripts/cleanup_certs.py
