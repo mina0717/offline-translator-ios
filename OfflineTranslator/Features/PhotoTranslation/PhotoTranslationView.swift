@@ -402,21 +402,20 @@ private struct ImageWithOverlay: View {
         let bh = region.boundingBox.height * drawnSize.height
 
         Text(translated)
-            // v1.2.11：再縮小（9pt 起跳，bh × 0.45），重疊面積進一步減少；
-            // 看不清的塊 tap 跳 popover 17pt 大字。
-            .font(.system(size: max(9, bh * 0.45), weight: .semibold))
+            // v1.2.12：字級直接綁 bbox 高度（× 0.85），跟原文字級貼合，剛好覆蓋；
+            // bbox 太小時下限 8pt 避免完全看不到。
+            .font(.system(size: max(8, bh * 0.85), weight: .semibold))
             .foregroundStyle(.black)
-            .lineLimit(2)
-            .minimumScaleFactor(0.5)
-            .padding(.horizontal, 3)
-            .padding(.vertical, 1)
-            // chip 寬度跟譯文長度走，最小 max(bw, 32) 讓短字也好點
-            .frame(minWidth: max(bw, 32), alignment: .leading)
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .padding(.horizontal, 2)
+            .padding(.vertical, 0)
+            // chip 寬度：至少蓋過原文 bbox 寬，譯文較長時自然延伸
+            .frame(minWidth: bw, alignment: .leading)
             .fixedSize(horizontal: true, vertical: true)
             .background(
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.white.opacity(0.95))
-                    .shadow(color: .black.opacity(0.18), radius: 1, x: 0, y: 1)
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.white.opacity(0.96))
             )
             .position(x: bx + bw / 2, y: by + bh / 2)
             .contentShape(Rectangle())
