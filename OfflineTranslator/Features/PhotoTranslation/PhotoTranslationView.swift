@@ -402,19 +402,20 @@ private struct ImageWithOverlay: View {
         let bh = region.boundingBox.height * drawnSize.height
 
         Text(translated)
-            .font(.system(size: max(13, bh * 0.7), weight: .semibold))
+            // v1.2.9：字級縮小（11pt 起跳，原文高度 0.55 倍），減少 chip 互相重疊面積
+            .font(.system(size: max(11, bh * 0.55), weight: .semibold))
             .foregroundStyle(.black)
             .lineLimit(2)
             .minimumScaleFactor(0.5)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3)
-            // chip 寬度跟譯文長度走，最小 max(bw, 50) 讓短字也好點
-            .frame(minWidth: max(bw, 50), alignment: .leading)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 2)
+            // chip 寬度跟譯文長度走，最小 max(bw, 40) 讓短字也好點（v1.2.9：50→40）
+            .frame(minWidth: max(bw, 40), alignment: .leading)
             .fixedSize(horizontal: true, vertical: true)
             .background(
-                RoundedRectangle(cornerRadius: 5)
+                RoundedRectangle(cornerRadius: 4)
                     .fill(Color.white.opacity(0.95))
-                    .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+                    .shadow(color: .black.opacity(0.2), radius: 1.5, x: 0, y: 1)
             )
             .position(x: bx + bw / 2, y: by + bh / 2)
             .contentShape(Rectangle())
