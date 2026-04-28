@@ -125,14 +125,14 @@ struct PhotoTranslationView: View {
         @ViewBuilder
         private var imageCard: some View {
             if let image = vm.pickedImage {
-                // v1.2.5：放大顯示區（用圖片自身比例 + 提高最大高度），疊圖文字字級放大
+                // v1.2.7：圖片區進一步放大（min 400 / max 700），按鈕變緊湊省空間給圖
                 ImageWithOverlay(
                     image: image,
                     regions: vm.regions,
                     showOverlay: vm.displayMode == .overlay && vm.phase == .done
                 )
                 .frame(maxWidth: .infinity)
-                .frame(minHeight: 320, maxHeight: 560)
+                .frame(minHeight: 400, maxHeight: 700)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
@@ -189,6 +189,7 @@ struct PhotoTranslationView: View {
             }
         }
 
+        /// v1.2.7：按鈕縮小，留空間給圖片
         private var actionButtons: some View {
             HStack(spacing: Theme.Spacing.sm) {
                 Button {
@@ -196,11 +197,13 @@ struct PhotoTranslationView: View {
                     CameraTip.hasUsedCameraOnce = true
                 } label: {
                     Label("相機", systemImage: "camera")
+                        .font(.system(size: 14, weight: .semibold))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, Theme.Spacing.sm)
+                        .padding(.vertical, 6)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Theme.Colors.accent)
+                .controlSize(.small)
                 .disabled(vm.isProcessing)
                 .popoverTip(cameraTip)
 
@@ -210,11 +213,13 @@ struct PhotoTranslationView: View {
                     photoLibrary: .shared()
                 ) {
                     Label("相簿", systemImage: "photo.on.rectangle")
+                        .font(.system(size: 14, weight: .semibold))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, Theme.Spacing.sm)
+                        .padding(.vertical, 6)
                 }
                 .buttonStyle(.bordered)
                 .tint(Theme.Colors.accent)
+                .controlSize(.small)
                 .disabled(vm.isProcessing)
 
                 if vm.pickedImage != nil {
@@ -222,11 +227,13 @@ struct PhotoTranslationView: View {
                         vm.clear()
                     } label: {
                         Image(systemName: "xmark")
-                            .padding(.vertical, Theme.Spacing.sm)
-                            .padding(.horizontal, Theme.Spacing.md)
+                            .font(.system(size: 14, weight: .semibold))
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 10)
                     }
                     .buttonStyle(.bordered)
                     .tint(.red)
+                    .controlSize(.small)
                     .disabled(vm.isProcessing)
                 }
             }
@@ -325,14 +332,13 @@ struct PhotoTranslationView: View {
 // MARK: - ImageWithOverlay (Google Lens 風格疊圖)
 
 /// v1.2.4：把 OCR regions 的譯文疊在原圖上對應 bounding box 位置。
-/// 計算流程：
-/// 1. 用 GeometryReader 拿到顯示區大小
-/// 2. 算出 Image 真正被縮到的尺寸（aspect fit），居中
-/// 3. region.boundingBox 是 0-1 normalized，乘上實際圖尺寸 + offset = view 座標
+/// v1.2.7：chip 嚴格限制在 bbox 範圍內不互相重疊；tap chip 跳出大尺寸 popover 顯示完整譯文 + 原文。
 private struct ImageWithOverlay: View {
     let image: UIImage
     let regions: [OCRRegion]
     let showOverlay: Bool
+
+    @State private var selectedId: UUID?
 
     var body: some View {
         GeometryReader { geo in
@@ -348,37 +354,131 @@ private struct ImageWithOverlay: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: viewSize.width, height: viewSize.height)
+                    .contentShape(Rectangle())
+                    .onTapGesture { selectedId = nil }
 
                 if showOverlay {
+                    // Layer 1：每塊 chip 嚴格限制在原 bbox 內，不互相重疊
                     ForEach(regions) { region in
-                        if let translated = region.translatedText, !translated.isEmpty {
-                            let bx = offsetX + region.boundingBox.minX * drawnSize.width
-                            let by = offsetY + region.boundingBox.minY * drawnSize.height
-                            let bw = region.boundingBox.width * drawnSize.width
-                            let bh = region.boundingBox.height * drawnSize.height
-
-                            // 譯文 chip：白底覆蓋原文。v1.2.5 字級放大、寬度允許溢出
-                            Text(translated)
-                                .font(.system(size: max(13, bh * 0.7), weight: .semibold))
-                                .foregroundStyle(.black)
-                                .lineLimit(3)
-                                .minimumScaleFactor(0.5)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 3)
-                                .frame(minWidth: max(bw, 50), alignment: .leading)
-                                .fixedSize(horizontal: true, vertical: true)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 5)
-                                        .fill(Color.white.opacity(0.95))
-                                        .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
-                                )
-                                .position(x: bx + bw / 2, y: by + bh / 2)
+                        if let translated = region.translatedText, !translated.isEmpty,
+                           selectedId != region.id {
+                            chipView(
+                                region: region,
+                                translated: translated,
+                                offsetX: offsetX, offsetY: offsetY,
+                                drawnSize: drawnSize
+                            )
                         }
+                    }
+
+                    // Layer 2：被選中的那一塊跳出 popover（zIndex 最高，覆蓋鄰近 chip）
+                    if let id = selectedId,
+                       let r = regions.first(where: { $0.id == id }),
+                       let t = r.translatedText {
+                        popoverView(
+                            region: r, translated: t,
+                            viewSize: viewSize,
+                            offsetX: offsetX, offsetY: offsetY,
+                            drawnSize: drawnSize
+                        )
                     }
                 }
             }
         }
         .aspectRatio(image.size, contentMode: .fit)
+    }
+
+    /// v1.2.7：嚴格限制在 bbox 內的小 chip
+    @ViewBuilder
+    private func chipView(
+        region: OCRRegion, translated: String,
+        offsetX: CGFloat, offsetY: CGFloat,
+        drawnSize: CGSize
+    ) -> some View {
+        let bx = offsetX + region.boundingBox.minX * drawnSize.width
+        let by = offsetY + region.boundingBox.minY * drawnSize.height
+        let bw = region.boundingBox.width * drawnSize.width
+        let bh = region.boundingBox.height * drawnSize.height
+
+        Text(translated)
+            .font(.system(size: max(9, bh * 0.7), weight: .semibold))
+            .foregroundStyle(.black)
+            .lineLimit(2)
+            .minimumScaleFactor(0.3)
+            .padding(.horizontal, 3)
+            .padding(.vertical, 1)
+            // 嚴格用 bbox 寬高，不溢出 → 不會互相重疊
+            .frame(width: bw, height: max(bh, 14), alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color.white.opacity(0.95))
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 3))
+            .position(x: bx + bw / 2, y: by + bh / 2)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+                    selectedId = region.id
+                }
+            }
+    }
+
+    /// v1.2.7：被點選的塊放大顯示，原文 + 譯文並列，蓋過鄰近 chip
+    @ViewBuilder
+    private func popoverView(
+        region: OCRRegion, translated: String,
+        viewSize: CGSize,
+        offsetX: CGFloat, offsetY: CGFloat,
+        drawnSize: CGSize
+    ) -> some View {
+        let bx = offsetX + region.boundingBox.minX * drawnSize.width
+        let by = offsetY + region.boundingBox.minY * drawnSize.height
+        let bw = region.boundingBox.width * drawnSize.width
+        let bh = region.boundingBox.height * drawnSize.height
+        let maxW = min(viewSize.width * 0.85, 320)
+        let estHeight: CGFloat = 130
+        // 偏好下方；下方空間不夠則放上方
+        let popCenterY: CGFloat = {
+            if by + bh + 6 + estHeight < viewSize.height {
+                return by + bh + 6 + estHeight / 2
+            } else {
+                return max(estHeight / 2 + 8, by - 6 - estHeight / 2)
+            }
+        }()
+
+        VStack(alignment: .leading, spacing: 6) {
+            Text(region.text)
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(.gray)
+                .lineLimit(3)
+            Divider().opacity(0.5)
+            Text(translated)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(.black)
+                .lineLimit(6)
+            Text("點此或別處關閉")
+                .font(.system(size: 10))
+                .foregroundStyle(.gray.opacity(0.7))
+        }
+        .padding(10)
+        .frame(width: maxW, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.white)
+                .shadow(color: .black.opacity(0.3), radius: 6, x: 0, y: 3)
+        )
+        .position(
+            x: max(maxW / 2 + 8, min(viewSize.width - maxW / 2 - 8, bx + bw / 2)),
+            y: popCenterY
+        )
+        .zIndex(100)
+        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+        .onTapGesture {
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+                selectedId = nil
+            }
+        }
     }
 }
 
