@@ -212,15 +212,7 @@ final class ConversationViewModel: ObservableObject {
             t.translationError = nil
         }
 
-        // 4. 朗讀譯文（失敗不影響主流程）
-        phase = .speaking
-        do {
-            try await useCase.speak(translated, language: listener)
-        } catch {
-            #if DEBUG
-            print("⚠️ TTS failed: \(error)")
-            #endif
-        }
+        // v1.2.9：取消自動朗讀（使用者反饋會嚇到）。改由使用者點氣泡上的喇叭 icon 觸發 replay()。
         phase = .idle
     }
 
@@ -252,15 +244,7 @@ final class ConversationViewModel: ObservableObject {
             t.translationError = nil
         }
 
-        // 重試成功後也朗讀
-        phase = .speaking
-        do {
-            try await useCase.speak(translated, language: turn.listener)
-        } catch {
-            #if DEBUG
-            print("⚠️ TTS failed: \(error)")
-            #endif
-        }
+        // v1.2.9：取消重試成功後自動朗讀。使用者要聽就點氣泡上的喇叭 icon。
         phase = .idle
     }
 

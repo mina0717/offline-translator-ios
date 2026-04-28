@@ -141,8 +141,8 @@ final class SpeechTranslationViewModel: ObservableObject {
             return
         }
 
-        // 3. 自動朗讀譯文（失敗不阻擋主流程）
-        await speakTranslation()
+        // v1.2.9：取消自動朗讀。使用者反饋翻譯後突然發聲嚇人。
+        // 改由使用者點譯文旁的喇叭 icon 觸發 speakTranslation()。
     }
 
     /// 手動點譯文旁的喇叭
