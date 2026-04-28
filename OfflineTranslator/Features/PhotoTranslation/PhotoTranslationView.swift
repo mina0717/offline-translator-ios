@@ -32,24 +32,34 @@ struct PhotoTranslationView: View {
         @State private var photoPickerItem: PhotosPickerItem?
         @State private var showCamera: Bool = false
 
-        /// v1.1：TipKit 新手引導 — 拍照翻譯
+        /// v1.1：TipKit 新手引導
         private let cameraTip = CameraTip()
-        /// v1.1：TipKit 新手引導 — 切換語言
         private let swapTip = LanguageSwitchTip()
 
         var body: some View {
             ScrollView {
                 VStack(spacing: Theme.Spacing.md) {
                     languageBar
-                    imageCard
+                    imageCard          // v1.2.4：Google Lens 風格疊圖在這裡
                     actionButtons
                     errorBanner
-                    // v1.1.2 UX：譯文卡放在「原文卡」之前，使用者看圖→直接看到翻譯
-                    if !vm.translatedText.isEmpty {
-                        translatedCard
-                    }
-                    if !vm.recognizedLines.isEmpty {
-                        recognizedCard
+                    if vm.hasResults && vm.phase == .done {
+                        displayModePicker
+                        if vm.displayMode == .list {
+                            regionListCard
+                        }
+                        copyButton
+                    } else if vm.phase == .translating {
+                        VStack(spacing: Theme.Spacing.sm) {
+                            ProgressView()
+                            Text("辨識完成，逐塊翻譯中…")
+                                .font(Theme.Font.body)
+                                .foregroundStyle(Theme.Colors.textSecondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(Theme.Spacing.md)
+                        .glassCard()
                     }
                     Spacer(minLength: Theme.Spacing.xl)
                 }
@@ -102,29 +112,31 @@ struct PhotoTranslationView: View {
         @ViewBuilder
         private var imageCard: some View {
             if let image = vm.pickedImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: .infinity)
-                    .frame(maxHeight: 280)
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
-                            .stroke(.white.opacity(0.3), lineWidth: 0.5)
-                    )
-                    .overlay(alignment: .topTrailing) {
-                        if vm.isProcessing {
-                            HStack(spacing: 6) {
-                                ProgressView().scaleEffect(0.8)
-                                Text("辨識翻譯中…")
-                                    .font(Theme.Font.caption)
-                                    .foregroundStyle(.white)
-                            }
-                            .padding(8)
-                            .background(Capsule().fill(.black.opacity(0.5)))
-                            .padding(8)
+                ImageWithOverlay(
+                    image: image,
+                    regions: vm.regions,
+                    showOverlay: vm.displayMode == .overlay && vm.phase == .done
+                )
+                .frame(maxWidth: .infinity)
+                .frame(maxHeight: 420)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
+                        .stroke(.white.opacity(0.3), lineWidth: 0.5)
+                )
+                .overlay(alignment: .topTrailing) {
+                    if vm.isProcessing {
+                        HStack(spacing: 6) {
+                            ProgressView().scaleEffect(0.8)
+                            Text(vm.phase == .recognizing ? "辨識中…" : "翻譯中…")
+                                .font(Theme.Font.caption)
+                                .foregroundStyle(.white)
                         }
+                        .padding(8)
+                        .background(Capsule().fill(.black.opacity(0.55)))
+                        .padding(8)
                     }
+                }
             } else {
                 VStack(spacing: Theme.Spacing.md) {
                     Image(systemName: "camera.viewfinder")
@@ -134,8 +146,12 @@ struct PhotoTranslationView: View {
                         .font(Theme.Font.body)
                         .foregroundStyle(Theme.Colors.textSecondary)
                         .multilineTextAlignment(.center)
+                    Text("譯文會直接疊在原圖上（Google Lens 風格）")
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .multilineTextAlignment(.center)
                 }
-                .frame(maxWidth: .infinity, minHeight: 200)
+                .frame(maxWidth: .infinity, minHeight: 220)
                 .glassCard()
             }
         }
@@ -211,54 +227,122 @@ struct PhotoTranslationView: View {
             }
         }
 
-        private var recognizedCard: some View {
+        /// v1.2.4：顯示模式切換器
+        private var displayModePicker: some View {
+            Picker("顯示", selection: $vm.displayMode) {
+                ForEach(PhotoTranslationViewModel.DisplayMode.allCases) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.vertical, 4)
+        }
+
+        /// 列表模式：每塊原文 + 譯文並列
+        private var regionListCard: some View {
             VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-                Text("\(vm.sourceLanguage.flag) \(vm.sourceLanguage.displayName) · 辨識到 \(vm.recognizedLines.count) 行")
-                    .font(Theme.Font.body)            // v1.1.2 caption→body 老人友善
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                Text(vm.mergedRecognizedText)
-                    .font(Theme.Font.translation)     // v1.1.2 26pt
-                    .foregroundStyle(Theme.Colors.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
-                    .textSelection(.enabled)
+                ForEach(vm.regions) { region in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(region.text)
+                            .font(Theme.Font.body)
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                        if let translated = region.translatedText, !translated.isEmpty {
+                            Text(translated)
+                                .font(Theme.Font.translationEmphasized)
+                                .foregroundStyle(Theme.Colors.textPrimary)
+                        } else {
+                            Text("（此塊未翻譯）")
+                                .font(Theme.Font.caption)
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(Theme.Spacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: Theme.Radius.md)
+                            .fill(.ultraThinMaterial)
+                    )
+                }
             }
             .glassCard()
         }
 
-        private var translatedCard: some View {
-            VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-                HStack {
-                    Text("\(vm.targetLanguage.flag) \(vm.targetLanguage.displayName) · 譯文")
-                        .font(Theme.Font.body)        // v1.1.2 caption→body
-                        .foregroundStyle(Theme.Colors.textSecondary)
-                    Spacer()
-                    Button {
-                        UIPasteboard.general.string = vm.translatedText
-                    } label: {
-                        Label("複製", systemImage: "doc.on.doc")
-                            .font(Theme.Font.body)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(Theme.Colors.accent)
+        private var copyButton: some View {
+            HStack {
+                Spacer()
+                Button {
+                    UIPasteboard.general.string = vm.mergedTranslatedText
+                } label: {
+                    Label("複製譯文", systemImage: "doc.on.doc")
+                        .font(Theme.Font.body)
                 }
-                // v1.1.2 老人友善：28pt + semibold + accent 邊框，最顯眼
-                Text(vm.translatedText)
-                    .font(Theme.Font.translationEmphasized)
-                    .foregroundStyle(Theme.Colors.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
-                    .padding(Theme.Spacing.sm)
-                    .background(
-                        RoundedRectangle(cornerRadius: Theme.Radius.md)
-                            .fill(Theme.Colors.accent.opacity(0.10))
-                    )
-                    .textSelection(.enabled)
+                .buttonStyle(.bordered)
+                .tint(Theme.Colors.accent)
             }
-            .glassCard()
         }
     }
 }
 
-// MARK: - LanguageChip（private 版本，與 SpeechTranslationView 獨立）
+// MARK: - ImageWithOverlay (Google Lens 風格疊圖)
+
+/// v1.2.4：把 OCR regions 的譯文疊在原圖上對應 bounding box 位置。
+/// 計算流程：
+/// 1. 用 GeometryReader 拿到顯示區大小
+/// 2. 算出 Image 真正被縮到的尺寸（aspect fit），居中
+/// 3. region.boundingBox 是 0-1 normalized，乘上實際圖尺寸 + offset = view 座標
+private struct ImageWithOverlay: View {
+    let image: UIImage
+    let regions: [OCRRegion]
+    let showOverlay: Bool
+
+    var body: some View {
+        GeometryReader { geo in
+            let viewSize = geo.size
+            let imgSize = image.size
+            let scale = min(viewSize.width / imgSize.width, viewSize.height / imgSize.height)
+            let drawnSize = CGSize(width: imgSize.width * scale, height: imgSize.height * scale)
+            let offsetX = (viewSize.width - drawnSize.width) / 2
+            let offsetY = (viewSize.height - drawnSize.height) / 2
+
+            ZStack(alignment: .topLeading) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: viewSize.width, height: viewSize.height)
+
+                if showOverlay {
+                    ForEach(regions) { region in
+                        if let translated = region.translatedText, !translated.isEmpty {
+                            let bx = offsetX + region.boundingBox.minX * drawnSize.width
+                            let by = offsetY + region.boundingBox.minY * drawnSize.height
+                            let bw = region.boundingBox.width * drawnSize.width
+                            let bh = region.boundingBox.height * drawnSize.height
+
+                            // 譯文 chip：白底覆蓋原文，文字盡量塞滿 bbox
+                            Text(translated)
+                                .font(.system(size: max(10, bh * 0.55), weight: .semibold))
+                                .foregroundStyle(.black)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.4)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 2)
+                                .frame(width: max(bw, 30), alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color.white.opacity(0.92))
+                                        .shadow(color: .black.opacity(0.15), radius: 1, x: 0, y: 1)
+                                )
+                                .position(x: bx + bw / 2, y: by + bh / 2)
+                        }
+                    }
+                }
+            }
+        }
+        .aspectRatio(image.size, contentMode: .fit)
+    }
+}
+
+// MARK: - LanguageChip
 
 private struct LanguageChip: View {
     let language: Language
@@ -286,8 +370,6 @@ private struct CameraPicker: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
-        // ⚠️ Mac 實測：模擬器沒有相機；.camera 會 crash
-        // 因此若 sourceType 不可用就退回 .photoLibrary
         if UIImagePickerController.isSourceTypeAvailable(.camera) {
             picker.sourceType = .camera
             picker.cameraCaptureMode = .photo

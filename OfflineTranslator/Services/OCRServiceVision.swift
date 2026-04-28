@@ -6,14 +6,7 @@ import Vision
 // Apple Vision framework 的真實作。
 //
 // 撰寫日：2026-04-20（草稿可直接在 Mac 驗證）
-//
-// 【Mac 實測檢查表】
-//   □ 1. 繁中手寫 / 印刷體辨識率：拍一張收據 / 看板試
-//   □ 2. 英文印刷體 / 手寫體混合：試標籤或說明文
-//   □ 3. VNRecognizeTextRequest.supportedRecognitionLanguages 回傳清單
-//        是否包含 "zh-Hant" 與 "en-US"
-//   □ 4. recognitionLevel = .accurate 的速度：實機 iPhone 12 約 0.3–0.8s
-//   □ 5. 若圖片超大 (> 8 MP) 考慮先縮圖以加速
+// v1.2.4：加 recognizeRegions(image:language:) 回傳 bounding box，給 Google Lens 風格疊圖用
 // ─────────────────────────────────────────────────────────────
 
 final class VisionOCRService: OCRService {
@@ -22,10 +15,21 @@ final class VisionOCRService: OCRService {
     /// 實測 2048px 對印刷體辨識率幾乎無損，但速度快 3–5 倍。
     private static let maxLongSide: CGFloat = 2048
 
+    /// v1.2.4：信心度門檻。低於此值的 OCR 結果可能是亂讀（例如 Vision 對土耳其文之類
+    /// 不支援的語言會硬猜成中文），疊圖時直接略過避免出現亂碼。
+    private static let confidenceThreshold: Float = 0.4
+
     func recognize(image: UIImage, language: Language) async throws -> [String] {
+        let regions = try await recognizeRegions(image: image, language: language)
+        let lines = regions.map { $0.text }
+        if lines.isEmpty { throw OCRError.noTextFound }
+        return lines
+    }
+
+    func recognizeRegions(image: UIImage, language: Language) async throws -> [OCRRegion] {
         // 先做 orientation 正規化（相機拍的圖常常 orientation != .up）
         let normalized = image.normalizedForOCR() ?? image
-        // 如果太大就縮圖（性能優化；Mac 實測項 #5）
+        // 如果太大就縮圖（性能優化）
         let resized = normalized.resizedForOCR(maxLongSide: Self.maxLongSide) ?? normalized
         guard let cgImage = resized.cgImage else {
             throw OCRError.invalidImage
@@ -38,20 +42,36 @@ final class VisionOCRService: OCRService {
                     return
                 }
                 let observations = (request.results as? [VNRecognizedTextObservation]) ?? []
-                let lines = observations.compactMap { $0.topCandidates(1).first?.string }
-                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                    .filter { !$0.isEmpty }
+                let regions: [OCRRegion] = observations.compactMap { obs in
+                    guard let candidate = obs.topCandidates(1).first else { return nil }
+                    let trimmed = candidate.string.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !trimmed.isEmpty else { return nil }
+                    // v1.2.4：低信心度直接濾掉，減少疊圖上的亂碼
+                    guard candidate.confidence >= Self.confidenceThreshold else { return nil }
+                    // Vision 的 boundingBox 是 normalized，原點在左下；轉成左上原點供 UIKit 用
+                    let vBox = obs.boundingBox
+                    let uBox = CGRect(
+                        x: vBox.minX,
+                        y: 1 - vBox.maxY,
+                        width: vBox.width,
+                        height: vBox.height
+                    )
+                    return OCRRegion(
+                        text: trimmed,
+                        boundingBox: uBox,
+                        confidence: candidate.confidence
+                    )
+                }
 
-                if lines.isEmpty {
+                if regions.isEmpty {
                     continuation.resume(throwing: OCRError.noTextFound)
                 } else {
-                    continuation.resume(returning: lines)
+                    continuation.resume(returning: regions)
                 }
             }
             request.recognitionLevel = .accurate
             request.usesLanguageCorrection = true
-            // 主要語言 + 備援（同時啟用 zh-Hant 與 en-US 辨識率會更好，
-            // 但若效能不夠再退回只用主要語言）
+            // 主要語言 + 備援
             request.recognitionLanguages = Self.recognitionLanguages(for: language)
 
             let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
@@ -64,8 +84,6 @@ final class VisionOCRService: OCRService {
     }
 
     /// 給 OCR 的候選辨識語言。主要語言放第一位。
-    /// ⚠️ Mac 實測項 #3：用 `VNRecognizeTextRequest.supportedRecognitionLanguages`
-    /// 確認這些代碼合法
     private static func recognitionLanguages(for language: Language) -> [String] {
         switch language {
         case .traditionalChinese: return ["zh-Hant", "en-US"]
@@ -87,7 +105,6 @@ private extension UIImage {
     }
 
     /// 將圖片長邊縮到 `maxLongSide` 以下。若原圖已經比較小就回 self。
-    /// 用於加速 OCR：48 MP 原圖對印刷體辨識沒有幫助，2048px 足夠了。
     func resizedForOCR(maxLongSide: CGFloat) -> UIImage? {
         let longSide = max(size.width, size.height)
         guard longSide > maxLongSide else { return self }
@@ -95,7 +112,7 @@ private extension UIImage {
         let newSize = CGSize(width: size.width * scale, height: size.height * scale)
 
         let format = UIGraphicsImageRendererFormat()
-        format.scale = 1   // 輸出像素 = 點數，不要再乘 @3x
+        format.scale = 1
         format.opaque = true
         let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
         return renderer.image { _ in

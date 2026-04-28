@@ -1,19 +1,20 @@
 import Foundation
 import UIKit
 
-/// 拍照翻譯 ViewModel。
+/// 拍照翻譯 ViewModel（v1.2.4：Google Lens 風格疊圖）
 ///
-/// 流程：選圖 / 拍照 → OCR → 翻譯 → 顯示結果（譯文 + 原文行）
+/// 流程：選圖 / 拍照 → OCR（含 bounding box）→ 每塊獨立翻譯 → 疊在原圖上
 ///
 /// 狀態機：
-///   .idle → (選圖) → .processing → .done → (再選圖 / 清除)
-///   任一 step 出錯 → .error
+///   .idle → (選圖) → .recognizing → .translating → .done
+///   錯誤 → .error
 @MainActor
 final class PhotoTranslationViewModel: ObservableObject {
 
     enum Phase: Equatable {
         case idle
-        case processing
+        case recognizing
+        case translating
         case done
     }
 
@@ -22,10 +23,22 @@ final class PhotoTranslationViewModel: ObservableObject {
     @Published var sourceLanguage: Language = .english
     @Published var targetLanguage: Language = .traditionalChinese
     @Published var pickedImage: UIImage?
-    @Published var recognizedLines: [String] = []
-    @Published var translatedText: String = ""
+    /// v1.2.4：每塊文字 + bounding box + 譯文（疊圖渲染用）
+    @Published var regions: [OCRRegion] = []
     @Published var phase: Phase = .idle
     @Published var errorMessage: String?
+    /// v1.2.4：使用者切換「原文 / 譯文 / 並列」三種顯示模式
+    @Published var displayMode: DisplayMode = .overlay
+
+    enum DisplayMode: String, CaseIterable, Identifiable {
+        /// 原圖蓋上譯文（Google Lens 預設）
+        case overlay = "譯文疊圖"
+        /// 顯示原圖（不蓋）
+        case original = "只看原圖"
+        /// 列表並列原文與譯文
+        case list = "原文 / 譯文 並列"
+        var id: String { rawValue }
+    }
 
     // MARK: - Dependencies
 
@@ -37,10 +50,15 @@ final class PhotoTranslationViewModel: ObservableObject {
 
     // MARK: - Derived
 
-    var isProcessing: Bool { phase == .processing }
-    var mergedRecognizedText: String {
-        recognizedLines.joined(separator: "\n")
+    var isProcessing: Bool { phase == .recognizing || phase == .translating }
+    var hasResults: Bool { !regions.isEmpty }
+    /// 合併原文（給「儲存到歷史 / 分享」用）
+    var mergedSourceText: String { regions.map { $0.text }.joined(separator: "\n") }
+    /// 合併譯文
+    var mergedTranslatedText: String {
+        regions.compactMap { $0.translatedText }.joined(separator: "\n")
     }
+
     var currentPair: LanguagePair {
         .init(source: sourceLanguage, target: targetLanguage)
     }
@@ -61,9 +79,9 @@ final class PhotoTranslationViewModel: ObservableObject {
         if !availableTargets.contains(targetLanguage) {
             targetLanguage = availableTargets.first ?? .english
         }
-        // 交換後若已有結果，重新翻譯一次
-        if pickedImage != nil && !recognizedLines.isEmpty {
-            Task { await translateRecognized() }
+        // 交換後若已有結果，重新翻譯一次（OCR 結果不變）
+        if pickedImage != nil && !regions.isEmpty {
+            Task { await translateExistingRegions() }
         }
     }
 
@@ -71,40 +89,36 @@ final class PhotoTranslationViewModel: ObservableObject {
     func process(image: UIImage) async {
         errorMessage = nil
         pickedImage = image
-        recognizedLines = []
-        translatedText = ""
-        phase = .processing
+        regions = []
+        phase = .recognizing
 
-        // 1. OCR
-        let lines: [String]
+        // 1. OCR + bbox
+        let detected: [OCRRegion]
         do {
-            lines = try await useCase.recognizeText(in: image, language: sourceLanguage)
+            detected = try await useCase.recognizeRegions(in: image, language: sourceLanguage)
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription
                 ?? error.localizedDescription
             phase = .idle
             return
         }
-        recognizedLines = lines
+        regions = detected
 
-        // 2. 翻譯
-        await translateRecognized()
+        // 2. 每塊獨立翻譯
+        await translateExistingRegions()
     }
 
-    /// 只執行翻譯（語言切換時重用）
-    private func translateRecognized() async {
-        guard !recognizedLines.isEmpty else {
+    /// 沿用現有 regions，重新翻譯（語言切換 / 重試用）
+    private func translateExistingRegions() async {
+        guard !regions.isEmpty else {
             phase = .idle
             return
         }
         errorMessage = nil
-        phase = .processing
+        phase = .translating
         do {
-            let result = try await useCase.translate(
-                lines: recognizedLines,
-                pair: currentPair
-            )
-            translatedText = result.translatedText
+            let translated = try await useCase.translateRegions(regions, pair: currentPair)
+            regions = translated
             phase = .done
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription
@@ -115,19 +129,18 @@ final class PhotoTranslationViewModel: ObservableObject {
 
     func clear() {
         pickedImage = nil
-        recognizedLines = []
-        translatedText = ""
+        regions = []
         errorMessage = nil
         phase = .idle
     }
 
-    /// 錯誤後的重試：如果已經有 OCR 結果就重翻，否則重跑 OCR + 翻譯
+    /// 錯誤後的重試
     func retry() async {
         guard let image = pickedImage else { return }
-        if recognizedLines.isEmpty {
+        if regions.isEmpty {
             await process(image: image)
         } else {
-            await translateRecognized()
+            await translateExistingRegions()
         }
     }
 }
