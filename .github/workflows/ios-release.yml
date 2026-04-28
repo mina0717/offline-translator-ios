@@ -145,6 +145,7 @@ jobs:
             CURRENT_PROJECT_VERSION="${{ steps.versions.outputs.build_number }}" \
             MARKETING_VERSION="${{ steps.versions.outputs.marketing_version }}" \
             CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
             archive 2>&1 | tee "$RAW_LOG" | xcpretty || ARCHIVE_EXIT=$?
           if [ "${ARCHIVE_EXIT:-0}" != "0" ]; then
