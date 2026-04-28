@@ -56,6 +56,13 @@ struct DefaultPhotoTranslateUseCase: PhotoTranslateUseCase {
         guard pair.isSupported else { throw TranslationError.unsupportedPair }
         guard !regions.isEmpty else { return [] }
 
+        // v1.2.6：語言包還沒下載 → 自動觸發 Apple 系統下載 sheet（透過 bridge）
+        // 不這樣做的話：第一塊就拋 modelNotAvailable，整張圖譯文全空（v1.2.5 土耳其文症狀）
+        let status = try await mtService.languagePackStatus(for: pair)
+        if status != .ready {
+            try await mtService.downloadLanguagePack(for: pair)
+        }
+
         // 逐塊翻譯。Apple Translation bridge 一次只能跑一個請求，
         // 並行呼叫會互相 cancel；序列跑就好（每塊 < 1s 在 v1.2.2 之後）。
         var out: [OCRRegion] = []

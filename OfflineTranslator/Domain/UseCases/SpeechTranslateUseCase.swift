@@ -38,6 +38,12 @@ struct DefaultSpeechTranslateUseCase: SpeechTranslateUseCase {
         guard !trimmed.isEmpty else { throw TranslationError.emptyInput }
         guard pair.isSupported else  { throw TranslationError.unsupportedPair }
 
+        // v1.2.6：語言包未下載 → 自動觸發系統下載 sheet
+        let status = try await mtService.languagePackStatus(for: pair)
+        if status != .ready {
+            try await mtService.downloadLanguagePack(for: pair)
+        }
+
         let translated = try await mtService.translate(text: trimmed, pair: pair)
         let result = TranslationResult(
             sourceText: trimmed,

@@ -21,6 +21,12 @@ struct DefaultTranslateTextUseCase: TranslateTextUseCase {
             throw TranslationError.unsupportedPair
         }
 
+        // v1.2.6：語言包未下載 → 自動觸發系統下載 sheet
+        let status = try await mtService.languagePackStatus(for: request.pair)
+        if status != .ready {
+            try await mtService.downloadLanguagePack(for: request.pair)
+        }
+
         // 2. 呼叫翻譯引擎
         let translated = try await mtService.translate(
             text: trimmed,
