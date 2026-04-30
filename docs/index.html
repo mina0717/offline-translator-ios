@@ -116,6 +116,35 @@
     border: 1px solid rgba(255, 255, 255, 0.18);
     margin-bottom: 24px;
   }
+  .app-identity {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 24px;
+  }
+  .app-icon-hero {
+    width: 96px;
+    height: 96px;
+    border-radius: 22px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+    background: #fff;
+  }
+  .app-name-block .app-name {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+    margin: 0;
+    color: #fff;
+  }
+  .app-name-block .app-tagline {
+    font-size: 0.92rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 4px 0 0;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
   .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: #2dd4bf; box-shadow: 0 0 12px #2dd4bf; }
   .hero h1 {
     font-size: clamp(2.4rem, 5vw, 3.8rem);
@@ -489,6 +518,17 @@
     gap: 16px;
     align-items: center;
   }
+  .foot-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .foot-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 9px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+  }
   .foot-links { display: flex; flex-wrap: wrap; gap: 18px; }
   .foot-links a { color: var(--fg-soft); }
 
@@ -505,6 +545,9 @@
     .usecases { grid-template-columns: repeat(2, 1fr); }
     .tech-grid { grid-template-columns: repeat(2, 1fr); }
     .floating-chip { font-size: 0.78rem; padding: 8px 12px; }
+    .app-icon-hero { width: 76px; height: 76px; border-radius: 18px; }
+    .app-name-block .app-name { font-size: 1.35rem; }
+    .app-name-block .app-tagline { font-size: 0.85rem; }
   }
   @media (max-width: 480px) {
     .usecases { grid-template-columns: 1fr; }
@@ -526,6 +569,13 @@
 <header class="hero">
   <div class="wrap hero-grid">
     <div class="hero-text">
+      <div class="app-identity">
+        <img src="./images/app-icon.png" alt="離線翻譯 App Icon" class="app-icon-hero" loading="eager">
+        <div class="app-name-block">
+          <p class="app-name">離線翻譯</p>
+          <p class="app-tagline">Offline Translator</p>
+        </div>
+      </div>
       <div class="eyebrow">
         <span class="dot"></span>
         Now Available on the App Store
@@ -829,8 +879,12 @@
 <!-- ========== FOOTER ========== -->
 <footer>
   <div class="wrap foot-grid">
-    <div>
-      © 2026 PEI HSUAN CHIANG · Made with ❤️ in Taiwan
+    <div class="foot-brand">
+      <img src="./images/app-icon.png" alt="離線翻譯 App Icon" class="foot-icon" loading="lazy">
+      <div>
+        <div style="color: var(--fg); font-weight: 600; font-size: 0.95rem;">離線翻譯 · Offline Translator</div>
+        <div>© 2026 PEI HSUAN CHIANG · Made with ❤️ in Taiwan</div>
+      </div>
     </div>
     <div class="foot-links">
       <a href="privacy.html">隱私政策</a>
