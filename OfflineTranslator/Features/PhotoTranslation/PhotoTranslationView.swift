@@ -104,7 +104,15 @@ struct PhotoTranslationView: View {
 
         private var languageBar: some View {
             HStack(spacing: Theme.Spacing.sm) {
-                LanguageChip(language: vm.sourceLanguage, caption: "來源")
+                // v1.3.0：拍照翻譯也支援 7 國語言 picker
+                LanguagePickerChip(
+                    current: vm.sourceLanguage,
+                    options: Language.allCases,
+                    excluded: vm.targetLanguage,
+                    caption: "來源",
+                    disabled: vm.isProcessing,
+                    onSelect: { vm.setSource($0) }
+                )
                 Button {
                     vm.swapLanguages()
                     LanguageSwitchTip.hasSwappedOnce = true
@@ -118,7 +126,14 @@ struct PhotoTranslationView: View {
                 .buttonStyle(.plain)
                 .disabled(vm.isProcessing)
                 .popoverTip(swapTip)
-                LanguageChip(language: vm.targetLanguage, caption: "譯文")
+                LanguagePickerChip(
+                    current: vm.targetLanguage,
+                    options: vm.availableTargets,
+                    excluded: vm.sourceLanguage,
+                    caption: "譯文",
+                    disabled: vm.isProcessing,
+                    onSelect: { vm.setTarget($0) }
+                )
             }
         }
 
@@ -625,26 +640,7 @@ private struct ImageWithOverlayInternal: View {
     }
 }
 
-// MARK: - LanguageChip
-
-private struct LanguageChip: View {
-    let language: Language
-    let caption: String
-
-    var body: some View {
-        VStack(spacing: 2) {
-            Text(caption)
-                .font(Theme.Font.caption)
-                .foregroundStyle(Theme.Colors.textSecondary)
-            Text("\(language.flag) \(language.displayName)")
-                .font(Theme.Font.body)
-                .foregroundStyle(Theme.Colors.textPrimary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, Theme.Spacing.sm)
-        .background(Capsule().fill(.ultraThinMaterial))
-    }
-}
+// v1.3.0：原 private struct LanguageChip 已被 DesignSystem/LanguagePickerChip 取代
 
 // MARK: - CameraPicker（UIImagePickerController SwiftUI wrapper）
 

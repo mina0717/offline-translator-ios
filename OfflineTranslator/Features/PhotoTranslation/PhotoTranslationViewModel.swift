@@ -91,6 +91,31 @@ final class PhotoTranslationViewModel: ObservableObject {
         }
     }
 
+    /// v1.3.0：使用者透過 Menu picker 選來源語言。
+    /// 注意：這個會覆蓋自動偵測。如果使用者改了 source 後拍新照，仍會走偵測。
+    func setSource(_ lang: Language) {
+        guard !isProcessing else { return }
+        guard sourceLanguage != lang else { return }
+        sourceLanguage = lang
+        if targetLanguage == sourceLanguage || !availableTargets.contains(targetLanguage) {
+            targetLanguage = availableTargets.first ?? .english
+        }
+        // 已有結果則重翻
+        if pickedImage != nil && !regions.isEmpty {
+            Task { await translateExistingRegions() }
+        }
+    }
+
+    /// v1.3.0：使用者透過 Menu picker 選目標語言。
+    func setTarget(_ lang: Language) {
+        guard !isProcessing else { return }
+        guard targetLanguage != lang, lang != sourceLanguage else { return }
+        targetLanguage = lang
+        if pickedImage != nil && !regions.isEmpty {
+            Task { await translateExistingRegions() }
+        }
+    }
+
     /// 使用者挑了一張圖（相機 / 相簿）
     func process(image: UIImage) async {
         errorMessage = nil
