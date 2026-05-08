@@ -202,3 +202,15 @@
 "settings.autodownload.title" = "啟動時自動下載缺失語言包";
 "settings.autodownload.footer" = "每次打開 App 時，自動掃描並下載尚未下載的語言包（共 42 個方向）。iOS 會跳系統對話框徵求同意。可在頂部 banner 暫停。";
 "暫停自動下載" = "暫停自動下載";
+
+// MARK: - v13.6 hotfix #3 (7 more languages: es/th/vi/pt/it/id/nl)
+"caveat.ocr.spanish" = "西班牙文：拉丁字母，重音字符 á é í ó ú ñ 正常辨識。";
+"caveat.ocr.thai" = "泰文：iOS 17.4+ 起 Vision 原生支援，印刷體佳。";
+"caveat.ocr.vietnamese" = "越南文：拉丁字母 + 大量音調符號，印刷體大致 OK。";
+"caveat.ocr.portuguese" = "葡萄牙文：拉丁字母，ã õ ç 正常辨識。";
+"caveat.ocr.italian" = "義大利文：拉丁字母，重音 à è ì ò ù 正常辨識。";
+"caveat.ocr.indonesian" = "印尼文：純拉丁字母，無音調，辨識穩定。";
+"caveat.ocr.dutch" = "荷蘭文：拉丁字母，雙母音 ij 與 ë 正常辨識。";
+"一鍵下載 — 繁中相關語言包" = "一鍵下載 — 繁中相關語言包";
+"下載「繁中 ↔ 全部 13 國其他語言」共 26 個方向（約 2GB）。下載完成後 Taiwan 主要 use case 全部可離線。其他配對（如英↔日、日↔韓）會在切換到時自動背景下載。" = "下載「繁中 ↔ 全部 13 國其他語言」共 26 個方向（約 2GB）。下載完成後 Taiwan 主要 use case 全部可離線。其他配對（如英↔日、日↔韓）會在切換到時自動背景下載。";
+"下載 26 個繁中配對" = "下載 26 個繁中配對";

@@ -202,3 +202,15 @@
 "settings.autodownload.title" = "Auto-download missing packs on launch";
 "settings.autodownload.footer" = "Each time you open the app, it scans and downloads any missing language packs (42 directions total). iOS will show a system dialog for each. You can pause via the top banner.";
 "暫停自動下載" = "Pause auto-download";
+
+// MARK: - v13.6 hotfix #3 (7 more languages)
+"caveat.ocr.spanish" = "Spanish: Latin script with accents (á é í ó ú ñ) recognized normally.";
+"caveat.ocr.thai" = "Thai: Vision natively supports th-TH from iOS 17.4+; print works well.";
+"caveat.ocr.vietnamese" = "Vietnamese: Latin script with extensive tone marks; print mostly OK.";
+"caveat.ocr.portuguese" = "Portuguese: Latin script; accented chars (ã õ ç) recognized normally.";
+"caveat.ocr.italian" = "Italian: Latin script; accented chars (à è ì ò ù) recognized normally.";
+"caveat.ocr.indonesian" = "Indonesian: pure Latin script, no diacritics — robust recognition.";
+"caveat.ocr.dutch" = "Dutch: Latin script; ij digraph and ë recognized normally.";
+"一鍵下載 — 繁中相關語言包" = "Quick download — 繁中-anchored packs";
+"下載「繁中 ↔ 全部 13 國其他語言」共 26 個方向（約 2GB）。下載完成後 Taiwan 主要 use case 全部可離線。其他配對（如英↔日、日↔韓）會在切換到時自動背景下載。" = "Download all 26 directions where 繁中 is one side (~2GB total). After this, the main Taiwan use cases work fully offline. Other pairs (en↔ja, ja↔ko, etc.) auto-download in the background when you switch to them.";
+"下載 26 個繁中配對" = "Download 26 pairs";

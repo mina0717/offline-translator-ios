@@ -117,18 +117,19 @@ struct LanguagePackView: View {
             .padding(.top, Theme.Spacing.md)
         }
 
-        /// v1.3.0：頂部「一鍵下載 4 國新語言」推薦卡片
+        /// v13.6：頂部「一鍵下載繁中相關 26 配對」推薦卡片
+        /// （v1.3.0 v13.3 原本只下日韓德法 8 對；v13.6 擴充為 14 國 → 26 對 = Tier 1）
         @ViewBuilder
         private var quickDownloadCard: some View {
             VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
                 HStack(spacing: 8) {
                     Image(systemName: "sparkles")
                         .foregroundStyle(Theme.Colors.accent)
-                    Text("v1.3.0 新增：日韓德法")
+                    Text("一鍵下載 — 繁中相關語言包")
                         .font(Theme.Font.headline)
                         .foregroundStyle(Theme.Colors.textPrimary)
                 }
-                Text("一鍵下載「繁中 ↔ 日／韓／德／法」共 8 個方向（約 640MB），下載完成後就可離線使用。")
+                Text("下載「繁中 ↔ 全部 13 國其他語言」共 26 個方向（約 2GB）。下載完成後 Taiwan 主要 use case 全部可離線。其他配對（如英↔日、日↔韓）會在切換到時自動背景下載。")
                     .font(Theme.Font.caption)
                     .foregroundStyle(Theme.Colors.textSecondary)
                 Button {
@@ -141,7 +142,7 @@ struct LanguagePackView: View {
                             Text("下載中… (\(vm.elapsedSeconds)s)")
                         } else {
                             Image(systemName: "arrow.down.circle.fill")
-                            Text("一鍵下載 4 國新語言")
+                            Text("下載 26 個繁中配對")
                         }
                     }
                     .font(Theme.Font.body)
@@ -156,18 +157,9 @@ struct LanguagePackView: View {
             .glassCard()
         }
 
-        /// 一鍵下載要涵蓋的 8 個方向（繁中 ↔ 日韓德法）
+        /// v13.6：與 Bootstrap 同步使用 Tier 1（繁中錨點）= 26 對
         private var quickPairs: [LanguagePair] {
-            [
-                .init(source: .traditionalChinese, target: .japanese),
-                .init(source: .japanese, target: .traditionalChinese),
-                .init(source: .traditionalChinese, target: .korean),
-                .init(source: .korean, target: .traditionalChinese),
-                .init(source: .traditionalChinese, target: .german),
-                .init(source: .german, target: .traditionalChinese),
-                .init(source: .traditionalChinese, target: .french),
-                .init(source: .french, target: .traditionalChinese),
-            ]
+            LanguagePackBootstrap.tier1Pairs
         }
 
         @ViewBuilder

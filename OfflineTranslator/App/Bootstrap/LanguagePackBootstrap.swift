@@ -44,11 +44,15 @@ final class LanguagePackBootstrap: ObservableObject {
             return
         }
 
-        // 第一階段：掃描所有 supported pair 找出未下載
+        // 第一階段：掃描「Tier 1」配對找出未下載
+        // v13.6：14 國 / 182 對全掃太多（15GB、182 個 iOS 系統 sheet）。
+        // 改成只掃「以繁中為錨點」的雙向配對 = 26 對（~2GB）。
+        // 其他配對（en↔ja、ja↔ko 等）走 v13.3 的 just-in-time preheat
+        // （使用者切到那個語言時 VM 自動 preheat），或使用者到語言包頁手動下載。
         phaseTag = 1
-        let allPairs = LanguagePair.supported
+        let tier1 = Self.tier1Pairs
         var missing: [LanguagePair] = []
-        for pair in allPairs {
+        for pair in tier1 {
             if isPaused { phaseTag = 0; return }
             currentPairText = "\(pair.source.displayName) → \(pair.target.displayName)"
             let status = (try? await mt.languagePackStatus(for: pair)) ?? .notDownloaded
@@ -126,5 +130,18 @@ final class LanguagePackBootstrap: ObservableObject {
         case 4:  return failureMessage
         default: return nil
         }
+    }
+
+    /// v13.6：Tier 1 = 「繁中為錨點」的雙向配對。
+    /// 14 種語言 × 2（繁中→其他、其他→繁中）− 1（繁中→繁中已排除） = **26 對**
+    /// 大約 2GB。涵蓋 Taiwan 使用者最主要的 use case（中翻外、外翻中）。
+    static var tier1Pairs: [LanguagePair] {
+        let anchor: Language = .traditionalChinese
+        var pairs: [LanguagePair] = []
+        for other in Language.allCases where other != anchor {
+            pairs.append(.init(source: anchor, target: other))
+            pairs.append(.init(source: other, target: anchor))
+        }
+        return pairs
     }
 }

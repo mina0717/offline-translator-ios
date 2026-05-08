@@ -85,14 +85,17 @@ final class VisionOCRService: OCRService {
 
     /// 給 OCR 的候選辨識語言。主要語言放第一位。
     ///
-    /// v1.3.0 新增 4 國 OCR 支援：
-    /// - 日文：Vision 原生 ja-JP（橫書佳，直書精度差，手寫不支援）
-    /// - 韓文：Vision 原生 ko-KR
-    /// - 德文：Vision 用 de-DE（拉丁字母，特殊字符 ß ä ö ü 大致 OK）
-    /// - 法文：Vision 用 fr-FR（拉丁字母，accent 字符 é è ê 大致 OK）
+    /// v13.6 新增 7 國 OCR 支援：
+    /// - 西班牙文：Vision 用 es-ES（拉丁字母，重音字 á é í ó ú ñ OK）
+    /// - 泰文：Vision iOS 17.4+ 原生 th-TH（曲線字母，印刷體佳）
+    /// - 越南文：Vision 用 vi-VN（拉丁字母 + 大量音調符號 ạ ằ ế ữ）
+    /// - 葡萄牙文：Vision 用 pt-BR（拉丁字母，重音 ã õ ç OK）
+    /// - 義大利文：Vision 用 it-IT（拉丁字母，重音 à è ì ò ù OK）
+    /// - 印尼文：Vision 用 id-ID（純拉丁字母，無音調）
+    /// - 荷蘭文：Vision 用 nl-NL（拉丁字母 + 雙母音 ij）
     ///
-    /// v1.2.5：土耳其文 — Vision 沒有原生 tr-TR OCR，用 en-US（拉丁字母）近似辨識。
-    /// 不適用於印章/手寫等非標準字體，使用者期待值需要管理（FAQ 已標註）。
+    /// v1.3.0 4 國：日韓德法（日韓 Vision 原生、德法拉丁字母）
+    /// v1.2.5：土耳其文 — Vision 沒有原生 tr-TR OCR，用 en-US（拉丁字母）近似辨識
     private static func recognitionLanguages(for language: Language) -> [String] {
         switch language {
         case .traditionalChinese: return ["zh-Hant", "en-US"]
@@ -102,6 +105,14 @@ final class VisionOCRService: OCRService {
         case .korean:             return ["ko-KR", "en-US"]
         case .german:             return ["de-DE", "en-US"]
         case .french:             return ["fr-FR", "en-US"]
+        // v13.6
+        case .spanish:            return ["es-ES", "en-US"]
+        case .thai:               return ["th-TH", "en-US"]
+        case .vietnamese:         return ["vi-VN", "en-US"]
+        case .portuguese:         return ["pt-BR", "en-US"]
+        case .italian:            return ["it-IT", "en-US"]
+        case .indonesian:         return ["id-ID", "en-US"]
+        case .dutch:              return ["nl-NL", "en-US"]
         }
     }
 }

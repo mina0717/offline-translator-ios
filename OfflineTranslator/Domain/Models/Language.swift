@@ -2,23 +2,31 @@ import Foundation
 
 /// App 目前支援的語言清單。
 ///
-/// v1.3.0：新增日／韓／德／法 4 個語言（共 7 種、42 個翻譯方向）。
-/// v1.2.5：加入土耳其文（Apple Translate iOS 18.4+ 支援；Vision OCR 不支援，
-/// 拍照時會嘗試以拉丁字母 fallback 辨識，不保證高準確度）。
+/// v1.3.0 (v13.6 擴充)：新增西班牙／泰／越南／葡萄牙／義大利／印尼／荷蘭 7 種，
+/// 加上 v1.3.0 主版的日韓德法 4 種，**共 14 種語言、14×13 = 182 個翻譯方向**。
+/// v1.3.0：新增日／韓／德／法 4 個語言。
+/// v1.2.5：加入土耳其文（Apple Translate iOS 18.4+ 支援）。
 ///
-/// **未支援**：克羅埃西亞文（Apple Translate 目前無此語言對）。
+/// **未支援**：克羅埃西亞文、希伯來文、波斯文等（Apple Translate 框架未涵蓋）。
 ///
-/// **SwiftData 相容性**：raw value 沿用 v1.2.x 的 case name（traditionalChinese / english / turkish），
-/// 新增 case 不影響舊資料解碼。
+/// **SwiftData 相容性**：raw value 沿用 case name 字串，新增 case 不影響舊資料解碼。
 enum Language: String, CaseIterable, Identifiable, Codable, Hashable {
     case traditionalChinese
     case english
     case turkish
-    // v1.3.0 新增
+    // v1.3.0 第一波
     case japanese
     case korean
     case german
     case french
+    // v1.3.0 / v13.6 第二波（同 v1.3.0 上架前一起加）
+    case spanish
+    case thai
+    case vietnamese
+    case portuguese
+    case italian
+    case indonesian
+    case dutch
 
     var id: String { rawValue }
 
@@ -33,6 +41,14 @@ enum Language: String, CaseIterable, Identifiable, Codable, Hashable {
         case .korean:             return "ko-KR"
         case .german:             return "de-DE"
         case .french:             return "fr-FR"
+        // v13.6 新增
+        case .spanish:            return "es-ES"
+        case .thai:               return "th-TH"
+        case .vietnamese:         return "vi-VN"
+        case .portuguese:         return "pt-BR"   // Apple framework 用巴西葡萄牙文
+        case .italian:            return "it-IT"
+        case .indonesian:         return "id-ID"
+        case .dutch:              return "nl-NL"
         }
     }
 
@@ -46,6 +62,13 @@ enum Language: String, CaseIterable, Identifiable, Codable, Hashable {
         case .korean:             return "한국어"
         case .german:             return "Deutsch"
         case .french:             return "Français"
+        case .spanish:            return "Español"
+        case .thai:               return "ไทย"
+        case .vietnamese:         return "Tiếng Việt"
+        case .portuguese:         return "Português"
+        case .italian:            return "Italiano"
+        case .indonesian:         return "Bahasa Indonesia"
+        case .dutch:              return "Nederlands"
         }
     }
 
@@ -59,14 +82,20 @@ enum Language: String, CaseIterable, Identifiable, Codable, Hashable {
         case .korean:             return "🇰🇷"
         case .german:             return "🇩🇪"
         case .french:             return "🇫🇷"
+        case .spanish:            return "🇪🇸"
+        case .thai:               return "🇹🇭"
+        case .vietnamese:         return "🇻🇳"
+        case .portuguese:         return "🇵🇹"   // 旗幟用葡萄牙（雖然語料是巴西葡），符合多數使用者預期
+        case .italian:            return "🇮🇹"
+        case .indonesian:         return "🇮🇩"
+        case .dutch:              return "🇳🇱"
         }
     }
 
     /// 語音辨識 / TTS 用的 Locale
     var locale: Locale { Locale(identifier: bcp47) }
 
-    /// v1.2.5：給 LanguageDetector 用 — NLLanguage rawValue 對應到 Language case
-    /// v1.3.0：擴充 ja/ko/de/fr
+    /// 給 LanguageDetector 用 — NLLanguage rawValue 對應到 Language case
     init?(forNLCode code: String) {
         switch code {
         case "zh-Hant", "zh-Hans", "zh": self = .traditionalChinese
@@ -76,6 +105,14 @@ enum Language: String, CaseIterable, Identifiable, Codable, Hashable {
         case "ko":                       self = .korean
         case "de":                       self = .german
         case "fr":                       self = .french
+        // v13.6
+        case "es":                       self = .spanish
+        case "th":                       self = .thai
+        case "vi":                       self = .vietnamese
+        case "pt":                       self = .portuguese
+        case "it":                       self = .italian
+        case "id":                       self = .indonesian
+        case "nl":                       self = .dutch
         default:                         return nil
         }
     }
@@ -86,13 +123,11 @@ struct LanguagePair: Hashable, Codable {
     let source: Language
     let target: Language
 
-    /// v1.3.0：改為動態生成所有 7×6 = 42 個有效配對（排除自我翻譯）。
-    /// Apple Translation Framework 在 runtime 會用 `LanguageAvailability.status(from:to:)`
-    /// 確認個別配對在當前 iOS 版本是否可用；不可用會跳「語言包不可用」提示。
-    /// 因此這裡列出所有理論上 Apple 支援的配對即可。
+    /// v1.3.0：動態生成所有 N×(N-1) 個有效配對（排除自我翻譯）。
+    /// v13.6：14 種語言 → 14×13 = **182 個配對**。
     ///
-    /// 已驗證 Apple Translation Framework（iOS 17.4+ / 18+）支援的 19 種語言中，
-    /// 我們的 7 種全部納入：zh-Hant / en / tr / ja / ko / de / fr
+    /// Apple Translation Framework 在 runtime 會用 `LanguageAvailability.status(from:to:)`
+    /// 確認個別配對在當前 iOS 版本是否可用；不可用 case 會跳系統提示。
     static let supported: [LanguagePair] = {
         var pairs: [LanguagePair] = []
         for src in Language.allCases {

@@ -4,9 +4,10 @@ import NaturalLanguage
 /// 偵測一段文字的語言。
 /// 使用 Apple `NaturalLanguage.NLLanguageRecognizer`（純本機、免網路、免權限）。
 ///
+/// v13.6：擴展支援西班牙／泰／越／葡／義／印尼／荷蘭文（共 14 國）。
 /// v1.3.0：擴展支援日／韓／德／法。
 /// v1.2.5：加入土耳其文。
-/// 範圍以外（克羅埃西亞、阿拉伯、泰文、越南文...）回傳 nil，UI 不會自動切換。
+/// 範圍以外（克羅埃西亞、阿拉伯、希伯來...）回傳 nil，UI 不會自動切換。
 struct LanguageDetector {
 
     /// 回傳最可能的 Language（限制在我們支援的清單內）。
@@ -25,11 +26,18 @@ struct LanguageDetector {
         case .simplifiedChinese:  return .traditionalChinese   // 簡中暫時也走繁中路線
         case .english:            return .english
         case .turkish:            return .turkish
-        // v1.3.0 新增
         case .japanese:           return .japanese
         case .korean:             return .korean
         case .german:             return .german
         case .french:             return .french
+        // v13.6 新增
+        case .spanish:            return .spanish
+        case .thai:               return .thai
+        case .vietnamese:         return .vietnamese
+        case .portuguese:         return .portuguese
+        case .italian:            return .italian
+        case .indonesian:         return .indonesian
+        case .dutch:              return .dutch
         default:                  return nil
         }
     }
