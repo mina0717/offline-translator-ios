@@ -196,3 +196,9 @@
 "一鍵下載「繁中 ↔ 日／韓／德／法」共 8 個方向（約 640MB），下載完成後就可離線使用。" = "Download all 8 directions (繁中 ↔ ja/ko/de/fr, ~640MB total) at once for full offline use.";
 "一鍵下載 4 國新語言" = "Download 4 new languages";
 "下載中…" = "Downloading…";
+
+// MARK: - v1.3.0 hotfix #2 (auto-download all language packs)
+"settings.autodownload.section_header" = "Language Packs";
+"settings.autodownload.title" = "Auto-download missing packs on launch";
+"settings.autodownload.footer" = "Each time you open the app, it scans and downloads any missing language packs (42 directions total). iOS will show a system dialog for each. You can pause via the top banner.";
+"暫停自動下載" = "Pause auto-download";

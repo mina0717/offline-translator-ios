@@ -1,74 +1,118 @@
 import Foundation
 import SwiftUI
 
-/// 語言包預下載器（v1.2.1 - simplified for compile debugging）
+/// 語言包預下載器
+///
+/// **v1.3.0 演進**：從原本只下 zh↔en 兩個方向，改為「**掃描全部 42 個 supported pair，
+/// 把所有未下載的依序下載**」。Mina 對使用者期望的判斷：「打開 App 就自動下載」。
+///
+/// 為何不一次平行 42 個？
+/// - Apple Translation framework 的 `prepareTranslation()` 一次只能配置一個 source/target，
+///   因此只能序列下載
+/// - 也避免一口氣 42 個 iOS 系統 sheet 噴出來
+///
+/// 使用者控制：
+/// - `@AppStorage("autoDownloadAllPacks")` 預設 true（=「自動下載」）
+/// - 在 SettingsView 可關閉，關閉後 bootstrap 退化為「不做任何事」
+/// - 進行中可呼叫 `pause()` 暫停
 @MainActor
 final class LanguagePackBootstrap: ObservableObject {
 
-    @Published private(set) var phaseTag: Int = 0   // 0=idle 1=checking 2=downloading 3=done 4=failed
+    @Published private(set) var phaseTag: Int = 0   // 0=idle 1=scanning 2=downloading 3=done 4=failed
     @Published private(set) var currentPairText: String = ""
     @Published private(set) var failureMessage: String?
     @Published private(set) var completedCount: Int = 0
-    @Published private(set) var totalCount: Int = 2
+    @Published private(set) var totalCount: Int = 0
+    @Published private(set) var isPaused: Bool = false
 
     private var hasStarted = false
+    private var pendingPairs: [LanguagePair] = []
+    private var currentTask: Task<Void, Never>?
+
+    /// v1.3.0：使用者偏好。預設「啟動時自動下載所有缺失語言包」開啟。
+    @AppStorage("autoDownloadAllPacks") private var autoDownloadAllPacks: Bool = true
 
     func runIfNeeded(mtService: AppleMTService?) async {
         guard !hasStarted else { return }
         hasStarted = true
 
-        guard let mt = mtService else {
+        guard let mt = mtService else { phaseTag = 0; return }
+
+        // v1.3.0：使用者關閉自動下載 → 跳過
+        if !autoDownloadAllPacks {
             phaseTag = 0
             return
         }
 
-        completedCount = 0
-        let pairs: [LanguagePair] = [
-            LanguagePair(source: .traditionalChinese, target: .english),
-            LanguagePair(source: .english, target: .traditionalChinese)
-        ]
-
-        for pair in pairs {
-            phaseTag = 1
+        // 第一階段：掃描所有 supported pair 找出未下載
+        phaseTag = 1
+        let allPairs = LanguagePair.supported
+        var missing: [LanguagePair] = []
+        for pair in allPairs {
+            if isPaused { phaseTag = 0; return }
             currentPairText = "\(pair.source.displayName) → \(pair.target.displayName)"
-
-            let status: LanguagePackStatus
-            do {
-                status = try await mt.languagePackStatus(for: pair)
-            } catch {
-                phaseTag = 4
-                failureMessage = "檢查語言包狀態失敗：\(error.localizedDescription)"
-                return
+            let status = (try? await mt.languagePackStatus(for: pair)) ?? .notDownloaded
+            if status != .ready {
+                missing.append(pair)
             }
+        }
 
-            if status == .ready {
-                completedCount += 1
-                continue
-            }
+        if missing.isEmpty {
+            phaseTag = 3
+            currentPairText = ""
+            return
+        }
 
-            phaseTag = 2
+        // 第二階段：序列下載
+        pendingPairs = missing
+        completedCount = 0
+        totalCount = missing.count
+        phaseTag = 2
+
+        for (idx, pair) in missing.enumerated() {
+            if isPaused { return }   // 暫停就停在這
+            currentPairText = "\(pair.source.displayName) → \(pair.target.displayName)"
             do {
                 try await mt.downloadLanguagePack(for: pair)
+                mt.invalidateLanguagePackStatusCache()
+            } catch is CancellationError {
+                // 使用者在系統 sheet 取消單一語言 → 跳過、不算失敗
             } catch {
-                if error is CancellationError {
-                    completedCount += 1
-                    continue
+                let msg = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                if msg.localizedCaseInsensitiveContains("cancel") {
+                    // 同上
+                } else {
+                    phaseTag = 4
+                    failureMessage = "下載 \(currentPairText) 失敗：\(msg)"
+                    return
                 }
-                phaseTag = 4
-                failureMessage = "下載語言包失敗：\(error.localizedDescription)"
-                return
             }
-            // v1.2.2：剛下載完，清掉 status 快取讓下一次翻譯重新確認 .ready
-            mt.invalidateLanguagePackStatusCache()
-            completedCount += 1
+            completedCount = idx + 1
         }
 
         phaseTag = 3
+        currentPairText = ""
+    }
+
+    /// v1.3.0：使用者按 banner 上的暫停鈕
+    func pause() {
+        isPaused = true
+        if phaseTag != 4 {
+            phaseTag = 0
+        }
+    }
+
+    /// 從暫停狀態恢復
+    func resume(mtService: AppleMTService?) async {
+        isPaused = false
+        hasStarted = false
+        await runIfNeeded(mtService: mtService)
     }
 
     func retry(mtService: AppleMTService?) async {
         hasStarted = false
         phaseTag = 0
+        isPaused = false
         await runIfNeeded(mtService: mtService)
     }
 
@@ -77,8 +121,8 @@ final class LanguagePackBootstrap: ObservableObject {
 
     var bannerMessage: String? {
         switch phaseTag {
-        case 1:  return "正在檢查語言包：\(currentPairText)"
-        case 2:  return "首次下載語言包中：\(currentPairText)（約需 1-3 分鐘）"
+        case 1:  return "檢查語言包：\(currentPairText)"
+        case 2:  return "自動下載中：\(currentPairText)"
         case 4:  return failureMessage
         default: return nil
         }

@@ -7,6 +7,9 @@ struct SettingsView: View {
     @EnvironmentObject private var localeManager: AppLocaleManager
     @Environment(\.dismiss) private var dismiss
 
+    /// v1.3.0：「啟動時自動下載所有缺失語言包」開關
+    @AppStorage("autoDownloadAllPacks") private var autoDownloadAllPacks: Bool = true
+
     var body: some View {
         NavigationStack {
             Form {
@@ -28,6 +31,22 @@ struct SettingsView: View {
                     Text("settings.locale.section_header")
                 } footer: {
                     Text("settings.locale.footer")
+                }
+
+                // v1.3.0：自動下載開關
+                Section {
+                    Toggle(isOn: $autoDownloadAllPacks) {
+                        Label {
+                            Text("settings.autodownload.title")
+                        } icon: {
+                            Image(systemName: "arrow.down.circle.fill")
+                                .foregroundStyle(Theme.Colors.accent)
+                        }
+                    }
+                } header: {
+                    Text("settings.autodownload.section_header")
+                } footer: {
+                    Text("settings.autodownload.footer")
                 }
 
                 // v1.3.0：關於區塊

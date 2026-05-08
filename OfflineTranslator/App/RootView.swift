@@ -91,7 +91,7 @@ private struct IntentNavigation: Hashable {
 // MARK: - LanguagePackDownloadBanner
 
 /// 頂部進度條：告訴使用者「正在下載語言包」，避免他們以為 App 壞了。
-/// 中文使用者導向：訊息全部用中文，按鈕標籤親切。
+/// v1.3.0：加上暫停按鈕與整體進度（X / Y 個語言包）
 private struct LanguagePackDownloadBanner: View {
     @ObservedObject var bootstrap: LanguagePackBootstrap
 
@@ -109,13 +109,25 @@ private struct LanguagePackDownloadBanner: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
 
-                // 進度文字
-                Text("\(bootstrap.completedCount) / \(bootstrap.totalCount) 個方向已完成")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.8))
+                // 進度文字（v1.3.0：只在下載階段顯示）
+                if bootstrap.totalCount > 0 {
+                    Text("\(bootstrap.completedCount) / \(bootstrap.totalCount) 個語言包已完成")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.8))
+                }
             }
 
             Spacer(minLength: 0)
+
+            // v1.3.0：暫停按鈕，使用者覺得太煩可以隨時停
+            Button {
+                bootstrap.pause()
+            } label: {
+                Image(systemName: "pause.circle.fill")
+                    .font(.system(size: 22))
+                    .foregroundStyle(.white)
+            }
+            .accessibilityLabel(Text("暫停自動下載"))
         }
         .padding(.horizontal, Theme.Spacing.md)
         .padding(.vertical, Theme.Spacing.sm)
@@ -123,7 +135,6 @@ private struct LanguagePackDownloadBanner: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .padding(.horizontal, Theme.Spacing.sm)
         .padding(.top, Theme.Spacing.xs)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(bootstrap.bannerMessage ?? "下載語言包中")
+        .accessibilityElement(children: .contain)
     }
 }
