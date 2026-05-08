@@ -80,6 +80,20 @@ final class ConversationViewModel: ObservableObject {
 
     init(useCase: SpeechTranslateUseCase) {
         self.useCase = useCase
+        preheatBothDirections()
+    }
+
+    /// v1.3.0：背景預下載「A→B」與「B→A」兩個方向的語言包。
+    private func preheatBothDirections() {
+        let pairs = [
+            LanguagePair(source: sideALanguage, target: sideBLanguage),
+            LanguagePair(source: sideBLanguage, target: sideALanguage)
+        ]
+        Task.detached { [useCase] in
+            for pair in pairs {
+                await useCase.preheatLanguagePack(pair: pair)
+            }
+        }
     }
 
     /// v1.2.2：避免 task / 麥克風在 ViewModel 已釋放後仍在跑
@@ -121,6 +135,37 @@ final class ConversationViewModel: ObservableObject {
         turns = []
         partialTranscript = ""
         errorMessage = nil
+        preheatBothDirections()
+    }
+
+    /// v1.3.0：使用者點上方語言 chip 切換 A 角語言（下半部、自己這邊）。
+    /// 若新語言與 B 角相同，自動把 B 角換到別的語言以避免衝突。
+    /// 切換後清空對話歷史（翻譯方向變了，舊紀錄混語言不直觀）。
+    func setSideALanguage(_ lang: Language) {
+        guard !isRecording && !isBusy else { return }
+        guard sideALanguage != lang else { return }
+        sideALanguage = lang
+        if sideBLanguage == lang {
+            sideBLanguage = Language.allCases.first { $0 != lang } ?? .english
+        }
+        turns = []
+        partialTranscript = ""
+        errorMessage = nil
+        preheatBothDirections()
+    }
+
+    /// v1.3.0：切換 B 角語言（上半部、對方）。
+    func setSideBLanguage(_ lang: Language) {
+        guard !isRecording && !isBusy else { return }
+        guard sideBLanguage != lang else { return }
+        sideBLanguage = lang
+        if sideALanguage == lang {
+            sideALanguage = Language.allCases.first { $0 != lang } ?? .traditionalChinese
+        }
+        turns = []
+        partialTranscript = ""
+        errorMessage = nil
+        preheatBothDirections()
     }
 
     /// 按住開始錄音（指定誰在說）

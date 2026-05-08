@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct LanguagePackView: View {
     @EnvironmentObject private var deps: AppDependencies
@@ -33,6 +34,7 @@ struct LanguagePackView: View {
             ScrollView {
                 VStack(spacing: Theme.Spacing.md) {
                     header
+                    quickDownloadCard       // v1.3.0：一鍵下載 4 國新語言
                     ForEach(vm.packs) { pack in
                         row(pack)
                     }
@@ -98,10 +100,13 @@ struct LanguagePackView: View {
 
         private var footer: some View {
             VStack(spacing: Theme.Spacing.xs) {
-                Text("MVP 範圍：中⇄英")
+                Text("v1.3.0：支援 7 種語言、42 個翻譯方向")
                     .font(Theme.Font.caption)
                     .foregroundStyle(Theme.Colors.textSecondary)
-                Text("下載：iOS 會顯示系統對話框，確認後自動下載。")
+                Text("💡 在語音 / 對話頁切換語言時，App 會在背景自動預下載對應語言包，下次翻譯就不用再等。")
+                    .font(Theme.Font.caption)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                Text("下載：iOS 會跳系統對話框（「允許下載」）。確認後 1-3 分鐘下載完成。")
                     .font(Theme.Font.caption)
                     .foregroundStyle(Theme.Colors.textSecondary)
                 Text("刪除：需到「設定 → 一般 → 語言與地區 → 翻譯」手動移除。")
@@ -110,6 +115,59 @@ struct LanguagePackView: View {
             }
             .multilineTextAlignment(.center)
             .padding(.top, Theme.Spacing.md)
+        }
+
+        /// v1.3.0：頂部「一鍵下載 4 國新語言」推薦卡片
+        @ViewBuilder
+        private var quickDownloadCard: some View {
+            VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .foregroundStyle(Theme.Colors.accent)
+                    Text("v1.3.0 新增：日韓德法")
+                        .font(Theme.Font.headline)
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                }
+                Text("一鍵下載「繁中 ↔ 日／韓／德／法」共 8 個方向（約 640MB），下載完成後就可離線使用。")
+                    .font(Theme.Font.caption)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                Button {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    Task { await vm.downloadBatch(quickPairs) }
+                } label: {
+                    HStack {
+                        if vm.downloadingPair != nil {
+                            ProgressView().scaleEffect(0.8).tint(.white)
+                            Text("下載中… (\(vm.elapsedSeconds)s)")
+                        } else {
+                            Image(systemName: "arrow.down.circle.fill")
+                            Text("一鍵下載 4 國新語言")
+                        }
+                    }
+                    .font(Theme.Font.body)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Theme.Spacing.sm)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.Colors.accent)
+                .disabled(vm.downloadingPair != nil)
+            }
+            .padding(Theme.Spacing.md)
+            .glassCard()
+        }
+
+        /// 一鍵下載要涵蓋的 8 個方向（繁中 ↔ 日韓德法）
+        private var quickPairs: [LanguagePair] {
+            [
+                .init(source: .traditionalChinese, target: .japanese),
+                .init(source: .japanese, target: .traditionalChinese),
+                .init(source: .traditionalChinese, target: .korean),
+                .init(source: .korean, target: .traditionalChinese),
+                .init(source: .traditionalChinese, target: .german),
+                .init(source: .german, target: .traditionalChinese),
+                .init(source: .traditionalChinese, target: .french),
+                .init(source: .french, target: .traditionalChinese),
+            ]
         }
 
         @ViewBuilder
@@ -160,14 +218,23 @@ struct LanguagePackView: View {
 
             case .notDownloaded, .failed:
                 if isDownloadingThis {
-                    HStack(spacing: 6) {
-                        ProgressView().scaleEffect(0.8)
-                        Text("等候中…")
-                            .font(Theme.Font.caption)
+                    // v1.3.0：清楚顯示「下載中 + 已耗時」，避免使用者覺得 App 死機
+                    VStack(alignment: .trailing, spacing: 2) {
+                        HStack(spacing: 6) {
+                            ProgressView().scaleEffect(0.8)
+                            Text("下載中…")
+                                .font(Theme.Font.caption)
+                                .foregroundStyle(Theme.Colors.accent)
+                        }
+                        Text("\(vm.elapsedSeconds)s")
+                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                            .foregroundStyle(Theme.Colors.textSecondary)
                     }
-                    .accessibilityLabel("下載等候中")
+                    .accessibilityLabel("下載中，已 \(vm.elapsedSeconds) 秒")
                 } else {
                     Button {
+                        // v1.3.0：立即觸覺回饋，告訴使用者「按到了」
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         Task { await vm.download(pack.pair) }
                     } label: {
                         Label("下載", systemImage: "arrow.down.circle")

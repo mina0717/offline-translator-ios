@@ -49,7 +49,15 @@ struct SpeechTranslationView: View {
 
         private var languageBar: some View {
             HStack(spacing: Theme.Spacing.sm) {
-                LanguageChip(language: vm.sourceLanguage, caption: "來源")
+                // v1.3.0：來源語言可點選切換（7 國 Menu picker）
+                LanguagePickerChip(
+                    current: vm.sourceLanguage,
+                    options: Language.allCases,
+                    excluded: vm.targetLanguage,
+                    caption: "來源",
+                    disabled: vm.isRecording || vm.isBusy,
+                    onSelect: { vm.setSource($0) }
+                )
                 Button(action: vm.swapLanguages) {
                     Image(systemName: "arrow.left.arrow.right")
                         .font(.system(size: 16, weight: .semibold))
@@ -59,7 +67,16 @@ struct SpeechTranslationView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(vm.isRecording || vm.isBusy)
-                LanguageChip(language: vm.targetLanguage, caption: "譯文")
+                .accessibilityLabel(Text("交換來源與譯文"))
+                // v1.3.0：目標語言可點選切換
+                LanguagePickerChip(
+                    current: vm.targetLanguage,
+                    options: vm.availableTargets,
+                    excluded: vm.sourceLanguage,
+                    caption: "譯文",
+                    disabled: vm.isRecording || vm.isBusy,
+                    onSelect: { vm.setTarget($0) }
+                )
             }
         }
 
@@ -261,24 +278,7 @@ private struct HoldToSpeakButton: View {
 
 // MARK: - Supporting views
 
-private struct LanguageChip: View {
-    let language: Language
-    let caption: String
-
-    var body: some View {
-        VStack(spacing: 2) {
-            Text(caption)
-                .font(Theme.Font.caption)
-                .foregroundStyle(Theme.Colors.textSecondary)
-            Text("\(language.flag) \(language.displayName)")
-                .font(Theme.Font.body)
-                .foregroundStyle(Theme.Colors.textPrimary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, Theme.Spacing.sm)
-        .background(Capsule().fill(.ultraThinMaterial))
-    }
-}
+// LanguagePickerChip 已移到 DesignSystem/LanguagePickerChip.swift 共用
 
 private struct RecordingPulse: View {
     @State private var animate = false

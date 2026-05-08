@@ -185,3 +185,14 @@
 "bootstrap.banner_default" = "Downloading language packs";
 "bootstrap.check_failed" = "Could not check language pack status: %@";
 "bootstrap.download_failed" = "Language pack download failed: %@";
+
+// MARK: - v1.3.0 hotfix (language picker + download UX)
+"交換來源與譯文" = "Swap source and target";
+"v1.3.0：支援 7 種語言、42 個翻譯方向" = "v1.3.0: 7 languages, 42 translation directions";
+"💡 在語音 / 對話頁切換語言時，App 會在背景自動預下載對應語言包，下次翻譯就不用再等。" = "💡 When you change languages in Speech or Conversation, the app pre-downloads the language pack in the background — next translation will be instant.";
+"下載：iOS 會跳系統對話框（「允許下載」）。確認後 1-3 分鐘下載完成。" = "Download: iOS will show a system dialog (\"Allow download\"). After approval, download takes 1-3 minutes.";
+"刪除：需到「設定 → 一般 → 語言與地區 → 翻譯」手動移除。" = "Delete: go to Settings → General → Language & Region → Translation to remove manually.";
+"v1.3.0 新增：日韓德法" = "v1.3.0: Japanese, Korean, German, French";
+"一鍵下載「繁中 ↔ 日／韓／德／法」共 8 個方向（約 640MB），下載完成後就可離線使用。" = "Download all 8 directions (繁中 ↔ ja/ko/de/fr, ~640MB total) at once for full offline use.";
+"一鍵下載 4 國新語言" = "Download 4 new languages";
+"下載中…" = "Downloading…";

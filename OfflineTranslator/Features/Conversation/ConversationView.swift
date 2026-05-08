@@ -61,13 +61,24 @@ struct ConversationView: View {
 
         private var topHalf: some View {
             VStack(spacing: 0) {
+                // v1.3.0：對方的語言切換 menu（旋轉後對方看到的是正向 chevron）
+                ConversationLanguageMenu(
+                    current: vm.sideBLanguage,
+                    options: Language.allCases,
+                    excluded: vm.sideALanguage,
+                    disabled: vm.isRecording || vm.isBusy,
+                    onSelect: { vm.setSideBLanguage($0) }
+                )
+                .padding(.top, Theme.Spacing.md)
+                .padding(.bottom, Theme.Spacing.xs)
+
                 // 對方的麥克風（旋轉後會出現在「對方那一側的下方」）
                 SideRecordButton(
                     language: vm.sideBLanguage,
                     vm: vm
                 )
                 .padding(.horizontal, Theme.Spacing.lg)
-                .padding(.top, Theme.Spacing.md)
+                .padding(.top, Theme.Spacing.xs)
 
                 // 對方的對話顯示
                 ChatScroll(
@@ -104,6 +115,16 @@ struct ConversationView: View {
                         .padding(.horizontal, Theme.Spacing.lg)
                         .padding(.bottom, Theme.Spacing.sm)
                 }
+
+                // v1.3.0：我這邊的語言切換 menu
+                ConversationLanguageMenu(
+                    current: vm.sideALanguage,
+                    options: Language.allCases,
+                    excluded: vm.sideBLanguage,
+                    disabled: vm.isRecording || vm.isBusy,
+                    onSelect: { vm.setSideALanguage($0) }
+                )
+                .padding(.bottom, Theme.Spacing.xs)
 
                 // 我的麥克風
                 SideRecordButton(

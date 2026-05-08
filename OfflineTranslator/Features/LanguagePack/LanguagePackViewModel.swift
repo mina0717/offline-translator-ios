@@ -21,6 +21,12 @@ final class LanguagePackViewModel: ObservableObject {
     /// 哪一個 pair 正在下載（UI 用來顯示 ProgressView）
     @Published var downloadingPair: LanguagePair?
 
+    /// v1.3.0：當前下載的開始時間（用來計算已耗時、顯示給使用者）。
+    @Published var downloadStartedAt: Date?
+    /// v1.3.0：每秒更新一次的 elapsed 顯示用值。
+    @Published var elapsedSeconds: Int = 0
+    private var elapsedTimerTask: Task<Void, Never>?
+
     /// 一般錯誤訊息（會顯示紅色 banner）
     @Published var errorMessage: String?
     /// 需要引導使用者到「設定」的提示（刪除語言包時）
@@ -46,7 +52,14 @@ final class LanguagePackViewModel: ObservableObject {
         guard downloadingPair == nil else { return }
         errorMessage = nil
         downloadingPair = pair
-        defer { downloadingPair = nil }
+        // v1.3.0：開計時器、給使用者「真的有在下載」的視覺回饋
+        downloadStartedAt = Date()
+        elapsedSeconds = 0
+        startElapsedTimer()
+        defer {
+            downloadingPair = nil
+            stopElapsedTimer()
+        }
 
         do {
             try await repository.download(pair: pair)
@@ -62,6 +75,39 @@ final class LanguagePackViewModel: ObservableObject {
             } else {
                 errorMessage = msg
             }
+        }
+    }
+
+    /// v1.3.0：每秒更新 elapsedSeconds 讓 UI 顯示「下載中 (12s)」這類資訊
+    private func startElapsedTimer() {
+        elapsedTimerTask?.cancel()
+        elapsedTimerTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard let self, let started = self.downloadStartedAt else { return }
+                self.elapsedSeconds = Int(Date().timeIntervalSince(started))
+            }
+        }
+    }
+
+    private func stopElapsedTimer() {
+        elapsedTimerTask?.cancel()
+        elapsedTimerTask = nil
+        downloadStartedAt = nil
+        elapsedSeconds = 0
+    }
+
+    /// v1.3.0：批次下載多對語言包（給「一鍵下載 4 國」按鈕用）。
+    /// 一次只能跑一個下載（Apple 系統 sheet 限制），所以序列執行。
+    func downloadBatch(_ pairs: [LanguagePair]) async {
+        for pair in pairs {
+            // 已下載的跳過
+            if let info = packs.first(where: { $0.pair == pair }), info.status == .ready {
+                continue
+            }
+            await download(pair)
+            // 中途出錯就停（errorMessage 會被設）
+            if errorMessage != nil { return }
         }
     }
 
