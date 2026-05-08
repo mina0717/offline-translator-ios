@@ -20,6 +20,7 @@ protocol SpeechTranslateUseCase {
     /// 由 ViewModel 在使用者切換語言時呼叫，把語言包 download 提前到背景跑，
     /// 而不是等到第一次翻譯時才觸發 iOS 下載對話框。
     func preheatLanguagePack(pair: LanguagePair) async
+}
 
 /// 真實作：組合 ASRService / MTService / TTSService。
 /// Day 6–7 會實作內部邏輯，現在先放骨架。
