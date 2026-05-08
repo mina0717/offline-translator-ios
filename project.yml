@@ -14,7 +14,8 @@ settings:
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     SWIFT_STRICT_CONCURRENCY: minimal
     # v1.2.12 fix：版本號用樣板，讓 xcodebuild MARKETING_VERSION/CURRENT_PROJECT_VERSION 真的能 override
-    MARKETING_VERSION: "1.2.12"
+    # v1.3.0：bump default to 1.3.0；CI 走 git tag 推 build 時仍會 override
+    MARKETING_VERSION: "1.3.0"
     CURRENT_PROJECT_VERSION: "1"
 targets:
   OfflineTranslator:

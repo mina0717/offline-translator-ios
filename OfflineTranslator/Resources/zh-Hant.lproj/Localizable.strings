@@ -140,3 +140,48 @@
 "%@ %@ · 辨識到 %lld 行" = "%@ %@ · 辨識到 %lld 行";
 "約 %lld MB · 離線可用" = "約 %lld MB · 離線可用";
 "已輸入 %lld 字元，建議上限 %lld" = "已輸入 %lld 字元，建議上限 %lld";
+/*
+  v1.3.0 新增字串 — 接續到 zh-Hant.lproj/Localizable.strings 末尾
+  變更說明：
+    1. 新增 4 個翻譯語言的 displayName（使用各國當地寫法，不需翻成中文）
+    2. 新增 SettingsView 完整 UI 字串
+    3. 新增 OCR/Speech 對新語言的精度提示
+*/
+
+// MARK: - v1.3.0 Settings (新增)
+"settings.title" = "設定";
+"settings.locale.section_header" = "外觀";
+"settings.locale.title" = "介面語言";
+"settings.locale.system" = "跟隨系統";
+"settings.locale.zh_hant" = "繁體中文";
+"settings.locale.english" = "English";
+"settings.locale.footer" = "切換後立即生效，不需重新開啟 App。";
+"settings.about.section_header" = "關於";
+"settings.about.version" = "App 版本";
+"settings.about.privacy" = "隱私政策";
+
+// MARK: - v1.3.0 Common actions (新增)
+"action.done" = "完成";
+"action.cancel" = "取消";
+
+// MARK: - v1.3.0 OCR / Speech 精度提示（FAQ + 首次使用 disclaimer）
+"caveat.ocr.japanese" = "日文：橫書辨識佳，直書與手寫精度有限。";
+"caveat.ocr.korean" = "韓文：印刷體佳，手寫精度有限。";
+"caveat.ocr.german" = "德文：印刷體佳，特殊字元（ä ö ü ß）正常辨識。";
+"caveat.ocr.french" = "法文：印刷體佳，accent 字元（é è ê à）正常辨識。";
+"caveat.ocr.turkish" = "土耳其文：用拉丁字母 fallback，藝術字精度有限。";
+
+"caveat.speech.disclaimer" = "首次使用該語言時，iOS 會下載語音辨識模型（每國約 30-50MB）。";
+
+// MARK: - v1.3.0 Photo translation auto-switch hints
+// 注意：含 %@ placeholder，Swift 端用 String(localized:) + interpolation
+"photo.detect.switched" = "已自動切換到偵測語言：%@ %@";
+"photo.detect.unsupported" = "偵測到 %@，但目前未支援，仍以 %@ 嘗試翻譯";
+
+// MARK: - v1.3.0 Bootstrap status
+"bootstrap.checking" = "正在檢查語言包：%@";
+"bootstrap.first_download" = "首次下載語言包中：%@（約需 1-3 分鐘）";
+"bootstrap.completed_count" = "%d / %d 個方向已完成";
+"bootstrap.banner_default" = "下載語言包中";
+"bootstrap.check_failed" = "檢查語言包狀態失敗：%@";
+"bootstrap.download_failed" = "下載語言包失敗：%@";

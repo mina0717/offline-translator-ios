@@ -251,12 +251,17 @@ final class SpeechASRService: ASRService {
     /// Speech framework 對某些語言需要更精確的 locale：
     /// - 英文用 `en-US` 而非 `en`
     /// - 繁中用 `zh-TW`（SFSpeechRecognizer 對 `zh-Hant` 支援不穩）
-    /// ⚠️ Mac 實測項 #3：借機時驗證這兩個 locale 的 isAvailable
+    /// - v1.3.0 新增 4 國：ja-JP / ko-KR / de-DE / fr-FR 全部 SFSpeechRecognizer 原生支援
+    ///   首次語音辨識會觸發 Apple 模型下載（每國 ~30-50MB）
     private static func speechLocale(for language: Language) -> Locale {
         switch language {
         case .traditionalChinese: return Locale(identifier: "zh-TW")
         case .english:            return Locale(identifier: "en-US")
         case .turkish:            return Locale(identifier: "tr-TR")
+        case .japanese:           return Locale(identifier: "ja-JP")
+        case .korean:             return Locale(identifier: "ko-KR")
+        case .german:             return Locale(identifier: "de-DE")
+        case .french:             return Locale(identifier: "fr-FR")
         }
     }
 }

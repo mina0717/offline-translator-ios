@@ -141,3 +141,47 @@
 "%@ %@ · 辨識到 %lld 行" = "%@ %@ · Detected %lld line(s)";
 "約 %lld MB · 離線可用" = "~%lld MB · offline";
 "已輸入 %lld 字元，建議上限 %lld" = "%lld characters entered, recommended limit %lld";
+/*
+  v1.3.0 additions — append to en.lproj/Localizable.strings
+  Notes:
+    1. New translation language display names use native spellings (do NOT translate to English)
+    2. Settings UI strings
+    3. OCR/Speech accuracy disclaimers
+*/
+
+// MARK: - v1.3.0 Settings (new)
+"settings.title" = "Settings";
+"settings.locale.section_header" = "Appearance";
+"settings.locale.title" = "Language";
+"settings.locale.system" = "System default";
+"settings.locale.zh_hant" = "繁體中文";
+"settings.locale.english" = "English";
+"settings.locale.footer" = "Changes apply immediately — no restart needed.";
+"settings.about.section_header" = "About";
+"settings.about.version" = "App version";
+"settings.about.privacy" = "Privacy Policy";
+
+// MARK: - v1.3.0 Common actions (new)
+"action.done" = "Done";
+"action.cancel" = "Cancel";
+
+// MARK: - v1.3.0 OCR / Speech accuracy hints (FAQ + first-use disclaimer)
+"caveat.ocr.japanese" = "Japanese: best for horizontal print; vertical or handwritten text has limited accuracy.";
+"caveat.ocr.korean" = "Korean: best for print; handwriting has limited accuracy.";
+"caveat.ocr.german" = "German: print works well, including special characters (ä ö ü ß).";
+"caveat.ocr.french" = "French: print works well, including accented characters (é è ê à).";
+"caveat.ocr.turkish" = "Turkish: uses Latin-alphabet fallback; stylized fonts have limited accuracy.";
+
+"caveat.speech.disclaimer" = "On first use, iOS will download the speech recognition model (~30-50MB per language).";
+
+// MARK: - v1.3.0 Photo translation auto-switch hints
+"photo.detect.switched" = "Auto-switched to detected language: %@ %@";
+"photo.detect.unsupported" = "Detected %@ — not yet supported. Falling back to %@.";
+
+// MARK: - v1.3.0 Bootstrap status
+"bootstrap.checking" = "Checking language pack: %@";
+"bootstrap.first_download" = "Downloading language pack: %@ (1-3 minutes)";
+"bootstrap.completed_count" = "%d / %d directions complete";
+"bootstrap.banner_default" = "Downloading language packs";
+"bootstrap.check_failed" = "Could not check language pack status: %@";
+"bootstrap.download_failed" = "Language pack download failed: %@";

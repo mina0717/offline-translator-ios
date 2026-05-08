@@ -84,13 +84,24 @@ final class VisionOCRService: OCRService {
     }
 
     /// 給 OCR 的候選辨識語言。主要語言放第一位。
+    ///
+    /// v1.3.0 新增 4 國 OCR 支援：
+    /// - 日文：Vision 原生 ja-JP（橫書佳，直書精度差，手寫不支援）
+    /// - 韓文：Vision 原生 ko-KR
+    /// - 德文：Vision 用 de-DE（拉丁字母，特殊字符 ß ä ö ü 大致 OK）
+    /// - 法文：Vision 用 fr-FR（拉丁字母，accent 字符 é è ê 大致 OK）
+    ///
     /// v1.2.5：土耳其文 — Vision 沒有原生 tr-TR OCR，用 en-US（拉丁字母）近似辨識。
-    /// 不適用於印章/手寫等非標準字體，使用者期待值需要管理。
+    /// 不適用於印章/手寫等非標準字體，使用者期待值需要管理（FAQ 已標註）。
     private static func recognitionLanguages(for language: Language) -> [String] {
         switch language {
         case .traditionalChinese: return ["zh-Hant", "en-US"]
         case .english:            return ["en-US", "zh-Hant"]
         case .turkish:            return ["en-US"]
+        case .japanese:           return ["ja-JP", "en-US"]
+        case .korean:             return ["ko-KR", "en-US"]
+        case .german:             return ["de-DE", "en-US"]
+        case .french:             return ["fr-FR", "en-US"]
         }
     }
 }
