@@ -38,9 +38,13 @@ struct RootView: View {
             drainQueue()
         }
         // v1.2.1：頂部 banner 顯示語言包下載進度
+        // v13.7：也顯示 low storage 警告（phaseTag = 5）
         .safeAreaInset(edge: .top) {
             if packBootstrap.isWorking {
                 LanguagePackDownloadBanner(bootstrap: packBootstrap)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            } else if packBootstrap.isLowStorageWarning {
+                LanguagePackLowStorageBanner(bootstrap: packBootstrap)
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
@@ -89,6 +93,29 @@ private struct IntentNavigation: Hashable {
 }
 
 // MARK: - LanguagePackDownloadBanner
+
+/// v13.7：當 phaseTag = 5（lowStorage）時顯示橘色警告
+private struct LanguagePackLowStorageBanner: View {
+    @ObservedObject var bootstrap: LanguagePackBootstrap
+
+    var body: some View {
+        HStack(alignment: .center, spacing: Theme.Spacing.sm) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.white)
+            Text(bootstrap.bannerMessage ?? "")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, Theme.Spacing.md)
+        .padding(.vertical, Theme.Spacing.sm)
+        .background(Color.orange.opacity(0.95))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .padding(.horizontal, Theme.Spacing.sm)
+        .padding(.top, Theme.Spacing.xs)
+    }
+}
 
 /// 頂部進度條：告訴使用者「正在下載語言包」，避免他們以為 App 壞了。
 /// v1.3.0：加上暫停按鈕與整體進度（X / Y 個語言包）

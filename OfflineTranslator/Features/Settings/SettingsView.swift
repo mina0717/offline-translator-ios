@@ -7,8 +7,16 @@ struct SettingsView: View {
     @EnvironmentObject private var localeManager: AppLocaleManager
     @Environment(\.dismiss) private var dismiss
 
-    /// v1.3.0：「啟動時自動下載所有缺失語言包」開關
-    @AppStorage("autoDownloadAllPacks") private var autoDownloadAllPacks: Bool = true
+    /// v13.7：Bootstrap 下載量級（Off / Minimal / Tier1 / Full）
+    @AppStorage("bootstrapMode") private var bootstrapModeRaw: String = LanguagePackBootstrap.Mode.minimal.rawValue
+    private var bootstrapMode: Binding<LanguagePackBootstrap.Mode> {
+        Binding(
+            get: { LanguagePackBootstrap.Mode(rawValue: bootstrapModeRaw) ?? .minimal },
+            set: { bootstrapModeRaw = $0.rawValue }
+        )
+    }
+    /// 顯示用：當前 device 可用空間
+    @State private var availableGB: Double = LanguagePackBootstrap.queryAvailableStorageGB()
 
     var body: some View {
         NavigationStack {
@@ -33,20 +41,34 @@ struct SettingsView: View {
                     Text("settings.locale.footer")
                 }
 
-                // v1.3.0：自動下載開關
+                // v13.7：自動下載量級（4 級選擇）
                 Section {
-                    Toggle(isOn: $autoDownloadAllPacks) {
+                    Picker(selection: bootstrapMode) {
+                        Text("關閉").tag(LanguagePackBootstrap.Mode.off)
+                        Text("最小（中↔英、~160MB）").tag(LanguagePackBootstrap.Mode.minimal)
+                        Text("標準（繁中相關 26 對、~2GB）").tag(LanguagePackBootstrap.Mode.tier1)
+                        Text("全部（182 對、~15GB · 不建議）").tag(LanguagePackBootstrap.Mode.full)
+                    } label: {
                         Label {
-                            Text("settings.autodownload.title")
+                            Text("啟動時自動下載")
                         } icon: {
                             Image(systemName: "arrow.down.circle.fill")
                                 .foregroundStyle(Theme.Colors.accent)
                         }
                     }
+                    .pickerStyle(.menu)
+
+                    HStack {
+                        Image(systemName: "internaldrive")
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                        Text(String(format: "目前可用空間：%.1f GB", availableGB))
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
                 } header: {
-                    Text("settings.autodownload.section_header")
+                    Text("語言包")
                 } footer: {
-                    Text("settings.autodownload.footer")
+                    Text("空間 < 3GB 會自動降到「最小」、< 1GB 會跳過下載並提示。其他配對（如英↔日）切換到時會在背景下載。")
                 }
 
                 // v1.3.0：關於區塊
