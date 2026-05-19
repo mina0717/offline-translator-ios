@@ -15,6 +15,11 @@ protocol SpeechTranslateUseCase {
 
     /// （可選）朗讀譯文。
     func speak(_ text: String, language: Language) async throws
+
+    /// v1.3.0：預下載語言包（非阻塞、忽略錯誤）。
+    /// 由 ViewModel 在使用者切換語言時呼叫，把語言包 download 提前到背景跑，
+    /// 而不是等到第一次翻譯時才觸發 iOS 下載對話框。
+    func preheatLanguagePack(pair: LanguagePair) async
 }
 
 /// 真實作：組合 ASRService / MTService / TTSService。
@@ -62,5 +67,21 @@ struct DefaultSpeechTranslateUseCase: SpeechTranslateUseCase {
 
     func speak(_ text: String, language: Language) async throws {
         try await ttsService.speak(text: text, language: language)
+    }
+
+    /// v1.3.0：背景預下載語言包。錯誤（含使用者取消下載 sheet）一律靜默忽略。
+    func preheatLanguagePack(pair: LanguagePair) async {
+        guard pair.isSupported else { return }
+        do {
+            let status = try await mtService.languagePackStatus(for: pair)
+            if status != .ready {
+                try await mtService.downloadLanguagePack(for: pair)
+            }
+        } catch {
+            // 使用者可能取消、可能無網路 — 通通靜默吞，下次真正翻譯時會再 prompt
+            #if DEBUG
+            print("ℹ️ preheat \(pair) skipped: \(error)")
+            #endif
+        }
     }
 }

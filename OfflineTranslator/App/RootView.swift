@@ -38,9 +38,13 @@ struct RootView: View {
             drainQueue()
         }
         // v1.2.1：頂部 banner 顯示語言包下載進度
+        // v13.7：也顯示 low storage 警告（phaseTag = 5）
         .safeAreaInset(edge: .top) {
             if packBootstrap.isWorking {
                 LanguagePackDownloadBanner(bootstrap: packBootstrap)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            } else if packBootstrap.isLowStorageWarning {
+                LanguagePackLowStorageBanner(bootstrap: packBootstrap)
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
@@ -90,8 +94,31 @@ private struct IntentNavigation: Hashable {
 
 // MARK: - LanguagePackDownloadBanner
 
+/// v13.7：當 phaseTag = 5（lowStorage）時顯示橘色警告
+private struct LanguagePackLowStorageBanner: View {
+    @ObservedObject var bootstrap: LanguagePackBootstrap
+
+    var body: some View {
+        HStack(alignment: .center, spacing: Theme.Spacing.sm) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.white)
+            Text(bootstrap.bannerMessage ?? "")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, Theme.Spacing.md)
+        .padding(.vertical, Theme.Spacing.sm)
+        .background(Color.orange.opacity(0.95))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .padding(.horizontal, Theme.Spacing.sm)
+        .padding(.top, Theme.Spacing.xs)
+    }
+}
+
 /// 頂部進度條：告訴使用者「正在下載語言包」，避免他們以為 App 壞了。
-/// 中文使用者導向：訊息全部用中文，按鈕標籤親切。
+/// v1.3.0：加上暫停按鈕與整體進度（X / Y 個語言包）
 private struct LanguagePackDownloadBanner: View {
     @ObservedObject var bootstrap: LanguagePackBootstrap
 
@@ -109,13 +136,25 @@ private struct LanguagePackDownloadBanner: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
 
-                // 進度文字
-                Text("\(bootstrap.completedCount) / \(bootstrap.totalCount) 個方向已完成")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.8))
+                // 進度文字（v1.3.0：只在下載階段顯示）
+                if bootstrap.totalCount > 0 {
+                    Text("\(bootstrap.completedCount) / \(bootstrap.totalCount) 個語言包已完成")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.8))
+                }
             }
 
             Spacer(minLength: 0)
+
+            // v1.3.0：暫停按鈕，使用者覺得太煩可以隨時停
+            Button {
+                bootstrap.pause()
+            } label: {
+                Image(systemName: "pause.circle.fill")
+                    .font(.system(size: 22))
+                    .foregroundStyle(.white)
+            }
+            .accessibilityLabel(Text("暫停自動下載"))
         }
         .padding(.horizontal, Theme.Spacing.md)
         .padding(.vertical, Theme.Spacing.sm)
@@ -123,7 +162,6 @@ private struct LanguagePackDownloadBanner: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .padding(.horizontal, Theme.Spacing.sm)
         .padding(.top, Theme.Spacing.xs)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(bootstrap.bannerMessage ?? "下載語言包中")
+        .accessibilityElement(children: .contain)
     }
 }

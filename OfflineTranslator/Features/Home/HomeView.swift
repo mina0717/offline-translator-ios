@@ -1,10 +1,18 @@
 import SwiftUI
 
 /// 首頁：四個主入口（文字 / 語音 / 拍照 / 語言包）+ 歷史紀錄入口。
+///
+/// v1.3.0：
+/// - 右上角加齒輪 → SettingsView（介面語言切換）
+/// - HomeTile 的 title/subtitle 改用 `LocalizedStringKey`，
+///   修復 v1.1 起就存在的 bug：透過 `String` 變數傳給 `Text` 不會走在地化。
 struct HomeView: View {
     enum Destination: Hashable {
         case text, speech, photo, languagePack, history, vocabulary, conversation
     }
+
+    /// v1.3.0：Settings sheet 開關
+    @State private var isShowingSettings = false
 
     var body: some View {
         ScrollView {
@@ -84,13 +92,29 @@ struct HomeView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        // v1.3.0：右上角設定齒輪
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isShowingSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                        .accessibilityLabel(Text("settings.title"))
+                }
+            }
+        }
+        .sheet(isPresented: $isShowingSettings) {
+            SettingsView()
+        }
     }
 }
 
+/// v1.3.0：title / subtitle 改用 `LocalizedStringKey`，這樣傳進來的中文字串
+/// 仍會走 SwiftUI 在地化機制（從 zh-Hant.strings / en.strings 查表）。
 private struct HomeTile: View {
     let icon: String
-    let title: String
-    let subtitle: String
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
     let destination: HomeView.Destination
 
     var body: some View {
@@ -117,5 +141,6 @@ private struct HomeTile: View {
 #Preview {
     NavigationStack { HomeView() }
         .environmentObject(AppDependencies.makeMock())
+        .environmentObject(AppLocaleManager())
         .background(GradientBackground())
 }

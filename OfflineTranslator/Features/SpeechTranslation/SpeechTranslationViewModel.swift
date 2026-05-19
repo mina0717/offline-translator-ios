@@ -38,6 +38,16 @@ final class SpeechTranslationViewModel: ObservableObject {
 
     init(useCase: SpeechTranslateUseCase) {
         self.useCase = useCase
+        // v1.3.0：開頁就背景預下載預設 pair（zh-Hant ↔ en），避免使用者第一次按麥克風才等下載
+        preheatCurrentPair()
+    }
+
+    /// v1.3.0：把當前 source/target pair 丟給 useCase 背景下載（不阻塞 UI）
+    private func preheatCurrentPair() {
+        let pair = currentPair
+        Task.detached { [useCase] in
+            await useCase.preheatLanguagePack(pair: pair)
+        }
     }
 
     // MARK: - Derived
@@ -72,6 +82,32 @@ final class SpeechTranslationViewModel: ObservableObject {
         finalTranscript = ""
         translatedText = ""
         errorMessage = nil
+        preheatCurrentPair()
+    }
+
+    /// v1.3.0：使用者透過 Menu picker 選來源語言。若新 source 與 target 相同，自動換 target。
+    func setSource(_ lang: Language) {
+        guard !isBusy && !isRecording else { return }
+        guard sourceLanguage != lang else { return }
+        sourceLanguage = lang
+        if targetLanguage == sourceLanguage || !availableTargets.contains(targetLanguage) {
+            targetLanguage = availableTargets.first ?? .english
+        }
+        partialTranscript = ""
+        finalTranscript = ""
+        translatedText = ""
+        errorMessage = nil
+        preheatCurrentPair()
+    }
+
+    /// v1.3.0：使用者透過 Menu picker 選目標語言。
+    func setTarget(_ lang: Language) {
+        guard !isBusy && !isRecording else { return }
+        guard targetLanguage != lang, lang != sourceLanguage else { return }
+        targetLanguage = lang
+        translatedText = ""
+        errorMessage = nil
+        preheatCurrentPair()
     }
 
     /// 長按開始：啟動 ASR 串流

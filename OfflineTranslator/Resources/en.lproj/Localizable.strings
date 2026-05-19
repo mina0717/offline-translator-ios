@@ -141,3 +141,76 @@
 "%@ %@ · 辨識到 %lld 行" = "%@ %@ · Detected %lld line(s)";
 "約 %lld MB · 離線可用" = "~%lld MB · offline";
 "已輸入 %lld 字元，建議上限 %lld" = "%lld characters entered, recommended limit %lld";
+/*
+  v1.3.0 additions — append to en.lproj/Localizable.strings
+  Notes:
+    1. New translation language display names use native spellings (do NOT translate to English)
+    2. Settings UI strings
+    3. OCR/Speech accuracy disclaimers
+*/
+
+// MARK: - v1.3.0 Settings (new)
+"settings.title" = "Settings";
+"settings.locale.section_header" = "Appearance";
+"settings.locale.title" = "Language";
+"settings.locale.system" = "System default";
+"settings.locale.zh_hant" = "繁體中文";
+"settings.locale.english" = "English";
+"settings.locale.footer" = "Changes apply immediately — no restart needed.";
+"settings.about.section_header" = "About";
+"settings.about.version" = "App version";
+"settings.about.privacy" = "Privacy Policy";
+
+// MARK: - v1.3.0 Common actions (new)
+"action.done" = "Done";
+"action.cancel" = "Cancel";
+
+// MARK: - v1.3.0 OCR / Speech accuracy hints (FAQ + first-use disclaimer)
+"caveat.ocr.japanese" = "Japanese: best for horizontal print; vertical or handwritten text has limited accuracy.";
+"caveat.ocr.korean" = "Korean: best for print; handwriting has limited accuracy.";
+"caveat.ocr.german" = "German: print works well, including special characters (ä ö ü ß).";
+"caveat.ocr.french" = "French: print works well, including accented characters (é è ê à).";
+"caveat.ocr.turkish" = "Turkish: uses Latin-alphabet fallback; stylized fonts have limited accuracy.";
+
+"caveat.speech.disclaimer" = "On first use, iOS will download the speech recognition model (~30-50MB per language).";
+
+// MARK: - v1.3.0 Photo translation auto-switch hints
+"photo.detect.switched" = "Auto-switched to detected language: %@ %@";
+"photo.detect.unsupported" = "Detected %@ — not yet supported. Falling back to %@.";
+
+// MARK: - v1.3.0 Bootstrap status
+"bootstrap.checking" = "Checking language pack: %@";
+"bootstrap.first_download" = "Downloading language pack: %@ (1-3 minutes)";
+"bootstrap.completed_count" = "%d / %d directions complete";
+"bootstrap.banner_default" = "Downloading language packs";
+"bootstrap.check_failed" = "Could not check language pack status: %@";
+"bootstrap.download_failed" = "Language pack download failed: %@";
+
+// MARK: - v1.3.0 hotfix (language picker + download UX)
+"交換來源與譯文" = "Swap source and target";
+"v1.3.0：支援 7 種語言、42 個翻譯方向" = "v1.3.0: 7 languages, 42 translation directions";
+"💡 在語音 / 對話頁切換語言時，App 會在背景自動預下載對應語言包，下次翻譯就不用再等。" = "💡 When you change languages in Speech or Conversation, the app pre-downloads the language pack in the background — next translation will be instant.";
+"下載：iOS 會跳系統對話框（「允許下載」）。確認後 1-3 分鐘下載完成。" = "Download: iOS will show a system dialog (\"Allow download\"). After approval, download takes 1-3 minutes.";
+"刪除：需到「設定 → 一般 → 語言與地區 → 翻譯」手動移除。" = "Delete: go to Settings → General → Language & Region → Translation to remove manually.";
+"v1.3.0 新增：日韓德法" = "v1.3.0: Japanese, Korean, German, French";
+"一鍵下載「繁中 ↔ 日／韓／德／法」共 8 個方向（約 640MB），下載完成後就可離線使用。" = "Download all 8 directions (繁中 ↔ ja/ko/de/fr, ~640MB total) at once for full offline use.";
+"一鍵下載 4 國新語言" = "Download 4 new languages";
+"下載中…" = "Downloading…";
+
+// MARK: - v1.3.0 hotfix #2 (auto-download all language packs)
+"settings.autodownload.section_header" = "Language Packs";
+"settings.autodownload.title" = "Auto-download missing packs on launch";
+"settings.autodownload.footer" = "Each time you open the app, it scans and downloads any missing language packs (42 directions total). iOS will show a system dialog for each. You can pause via the top banner.";
+"暫停自動下載" = "Pause auto-download";
+
+// MARK: - v13.6 hotfix #3 (7 more languages)
+"caveat.ocr.spanish" = "Spanish: Latin script with accents (á é í ó ú ñ) recognized normally.";
+"caveat.ocr.thai" = "Thai: Vision natively supports th-TH from iOS 17.4+; print works well.";
+"caveat.ocr.vietnamese" = "Vietnamese: Latin script with extensive tone marks; print mostly OK.";
+"caveat.ocr.portuguese" = "Portuguese: Latin script; accented chars (ã õ ç) recognized normally.";
+"caveat.ocr.italian" = "Italian: Latin script; accented chars (à è ì ò ù) recognized normally.";
+"caveat.ocr.indonesian" = "Indonesian: pure Latin script, no diacritics — robust recognition.";
+"caveat.ocr.dutch" = "Dutch: Latin script; ij digraph and ë recognized normally.";
+"一鍵下載 — 繁中相關語言包" = "Quick download — 繁中-anchored packs";
+"下載「繁中 ↔ 全部 13 國其他語言」共 26 個方向（約 2GB）。下載完成後 Taiwan 主要 use case 全部可離線。其他配對（如英↔日、日↔韓）會在切換到時自動背景下載。" = "Download all 26 directions where 繁中 is one side (~2GB total). After this, the main Taiwan use cases work fully offline. Other pairs (en↔ja, ja↔ko, etc.) auto-download in the background when you switch to them.";
+"下載 26 個繁中配對" = "Download 26 pairs";
