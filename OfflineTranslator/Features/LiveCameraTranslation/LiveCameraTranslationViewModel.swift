@@ -65,6 +65,12 @@ final class LiveCameraTranslationViewModel: ObservableObject {
         Language.allCases.filter { $0 != sourceLanguage }
     }
 
+    /// v1.4.0 hotfix3：有辨識到文字、但一句都翻不出來。
+    /// 通常是語言包還沒下載完；不講出來的話畫面上只會是一堆黃框，使用者不知道發生什麼事。
+    var hasTextButNoTranslation: Bool {
+        !regions.isEmpty && regions.allSatisfy { $0.translatedText == nil }
+    }
+
     // MARK: - Init
 
     init(service: LiveCameraTranslationService,

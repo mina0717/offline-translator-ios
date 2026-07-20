@@ -258,6 +258,12 @@ extension LiveCameraVisionService: AVCaptureVideoDataOutputSampleBufferDelegate 
 
 private extension LiveCameraVisionService {
 
+    /// 一次 pass 最多送幾筆翻譯。超過的留到下一輪，避免單輪拖太久把畫面卡住。
+    static var maxTranslationsPerPass: Int { 6 }
+    /// 單筆翻譯逾時。bridge 只有一個 continuation，萬一 `.translationTask` 沒回應，
+    /// 沒有逾時就會讓 `isTranslating` 永遠是 true —— 整條 pipeline 從此再也不動。
+    static var translateTimeoutSeconds: UInt64 { 6 }
+
     /// 翻譯 + 平滑 + emit。翻譯序列化，進行中的話直接丟棄這一輪。
     func process(raw: [(String, CGRect, Float)]) async {
         guard !isTranslating else { return }
@@ -265,44 +271,69 @@ private extension LiveCameraVisionService {
         defer { isTranslating = false }
 
         let pairAtStart = currentPair
-        var output: [RecognizedTextRegion] = []
 
+        // 1. 先組出「有框、譯文可能還是 nil」的版本並**立刻** emit。
+        //    先前要等整批都翻完才 yield 一次，畫面上好幾秒完全空白，
+        //    看起來就跟「功能根本沒作用」一樣。
+        var output: [RecognizedTextRegion] = []
+        output.reserveCapacity(raw.count)
         for (text, box, confidence) in raw {
             // 位置平滑：跟上一輪 IoU > 0.7 的視為同一塊，位置做 EMA
             let smoothedBox = smoothedRect(for: box)
-
-            if let cached = cache.value(for: text) {
-                output.append(RecognizedTextRegion(
-                    originalText: text,
-                    translatedText: cached,
-                    normalizedRect: smoothedBox,
-                    confidence: confidence
-                ))
-                continue
-            }
-
-            // 先放沒有譯文的版本，讓 overlay 至少能標出「這裡有文字」
-            var region = RecognizedTextRegion(
+            output.append(RecognizedTextRegion(
                 originalText: text,
-                translatedText: nil,
+                translatedText: cache.value(for: text),
                 normalizedRect: smoothedBox,
                 confidence: confidence
-            )
-
-            do {
-                let translated = try await mtService.translate(text: text, pair: pairAtStart)
-                // 翻譯期間使用者可能換了語言 → 這批結果作廢
-                guard currentPair == pairAtStart else { return }
-                cache.set(translated, for: text)
-                region.translatedText = translated
-            } catch {
-                // 單一區塊翻譯失敗不影響整批（可能是語言包還在下載）
-            }
-            output.append(region)
+            ))
         }
-
         previousRegions = output
         continuation.yield(output)
+
+        // 2. 逐一補譯文，每翻好一筆就再 emit 一次，讓譯文一個一個浮現。
+        var sent = 0
+        for index in output.indices where output[index].translatedText == nil {
+            guard sent < Self.maxTranslationsPerPass else { break }
+            sent += 1
+            do {
+                let translated = try await translateWithTimeout(
+                    text: output[index].originalText,
+                    pair: pairAtStart
+                )
+                // 翻譯期間使用者可能換了語言 → 這批結果作廢
+                guard currentPair == pairAtStart else { return }
+                cache.set(translated, for: output[index].originalText)
+                output[index].translatedText = translated
+                previousRegions = output
+                continuation.yield(output)
+            } catch {
+                // 單一區塊翻譯失敗不影響整批（可能是語言包還在下載）。
+                // 畫面上那一塊會留著黃色虛線框，使用者看得出「有偵測到但沒翻出來」。
+                #if DEBUG
+                print("ℹ️ live camera translate failed: \(error)")
+                #endif
+            }
+        }
+    }
+
+    /// 加逾時的翻譯。逾時後留下的懸空 continuation 會被 bridge 的下一筆請求
+    /// 以 CancellationError 收掉，不會累積。
+    func translateWithTimeout(text: String, pair: LanguagePair) async throws -> String {
+        let service = mtService
+        return try await withThrowingTaskGroup(of: String.self) { group in
+            group.addTask { @MainActor in
+                try await service.translate(text: text, pair: pair)
+            }
+            group.addTask {
+                try await Task.sleep(nanoseconds: Self.translateTimeoutSeconds * 1_000_000_000)
+                throw LiveCameraError.translateTimeout
+            }
+            defer { group.cancelAll() }
+            guard let first = try await group.next() else {
+                throw LiveCameraError.translateTimeout
+            }
+            return first
+        }
     }
 
     /// IoU > 0.7 視為同一個區塊，位置用 EMA 平滑（0.7 舊 + 0.3 新）避免抖動。

@@ -14,12 +14,13 @@ struct TextOverlayView: View {
     let cameraAspect: CGFloat
 
     var body: some View {
+        let rect = Self.overlayRect(
+            normalized: region.normalizedRect,
+            viewSize: viewSize,
+            cameraAspect: cameraAspect
+        )
+
         if let translated = region.translatedText {
-            let rect = Self.overlayRect(
-                normalized: region.normalizedRect,
-                viewSize: viewSize,
-                cameraAspect: cameraAspect
-            )
             Text(translated)
                 .font(.system(size: fontSize(for: rect), weight: .semibold))
                 .foregroundStyle(.white)
@@ -36,6 +37,16 @@ struct TextOverlayView: View {
                 .position(x: rect.midX, y: rect.midY)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text("\(region.originalText)，譯為 \(translated)"))
+        } else {
+            // v1.4.0 hotfix3：譯文還沒回來（或翻譯失敗）時，至少把「這裡有偵測到文字」畫出來。
+            // 先前這個分支是空的，導致「OCR 沒抓到字」和「抓到了但翻不出來」在畫面上長得一模一樣，
+            // 完全無從判斷是辨識還是翻譯出問題。
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .strokeBorder(.yellow.opacity(0.9), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                .frame(width: max(rect.width, 24), height: max(rect.height, 14))
+                .position(x: rect.midX, y: rect.midY)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text("\(region.originalText)，尚未翻譯"))
         }
     }
 

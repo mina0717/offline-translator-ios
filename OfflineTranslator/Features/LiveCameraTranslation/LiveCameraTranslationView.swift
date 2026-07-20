@@ -6,284 +6,289 @@ import AVFoundation
 /// 三層結構（沿用 v1.2.0 設計文件）：
 ///   Layer 1  相機即時畫面
 ///   Layer 2  譯文疊層（每個 region 一個 TextOverlayView）
-///   Layer 3  控制列（語言 picker / 交換 / 暫停 / 關閉）
+///   Layer 3  控制列（語言 picker / 交換 / 暫停）
+///   Layer 4  狀態遮罩（載入 / 無權限 / 失敗）
+///   Layer 5  關閉鍵 —— 永遠在最上層，任何狀態都點得到
+///
+/// **重要**：實際內容放在 `Content` struct 並用 `@ObservedObject` 訂閱 VM，
+/// 跟 ConversationView / SpeechTranslationView 同一個 pattern。
+/// v1.4.0 hotfix3 之前這裡把 vm 當普通函式參數傳，View 因此完全不觀察 VM ——
+/// phase / regions 再怎麼變畫面都不重繪（build #53、#54 的真正病根）。
 struct LiveCameraTranslationView: View {
     @EnvironmentObject private var deps: AppDependencies
-    @Environment(\.dismiss) private var dismiss
     @StateObject private var holder = VMHolder()
-
-    /// 直向 720x1280 的長寬比
-    private let cameraAspect: CGFloat = 720.0 / 1280.0
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
             if let vm = holder.vm {
-                content(vm: vm)
+                Content(vm: vm)
             } else {
                 ProgressView().tint(.white)
             }
         }
         .navigationBarBackButtonHidden(true)
         .statusBarHidden(true)
-        // v1.4.0 hotfix2：改用同步 onAppear 建立 VM，啟動流程由 VM 自己的 Task 驅動。
-        // 之前寫在 `.task { }` 裡，設定 @Published vm 會觸發 view 更新，
-        // SwiftUI 可能取消並重啟該 task —— 正在 await 的權限請求就此人間蒸發，
-        // 流程永遠停在半路（build #53 卡住且看門狗沒觸發的真正原因）。
+        // 同步建立 VM，啟動流程由 VM 自己的 Task 驅動（不靠 `.task { }`，那個會被取消）
         .onAppear {
             if holder.vm == nil {
-                holder.vm = LiveCameraTranslationViewModel(
-                    service: deps.liveCameraService
-                )
+                holder.vm = LiveCameraTranslationViewModel(service: deps.liveCameraService)
             }
             holder.vm?.begin()
         }
         .onDisappear { holder.vm?.onDisappear() }
     }
 
-    @MainActor
-    private func content(vm: LiveCameraTranslationViewModel) -> some View {
-        ZStack {
-            // ── Layer 1：相機畫面
-            CameraPreviewLayer(session: vm.captureSession)
-                .ignoresSafeArea()
-
-            // ── Layer 2：譯文疊層
-            GeometryReader { geo in
-                ForEach(vm.regions) { region in
-                    TextOverlayView(
-                        region: region,
-                        viewSize: geo.size,
-                        cameraAspect: cameraAspect
-                    )
-                }
-                .animation(.easeOut(duration: 0.18), value: vm.regions)
-            }
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-
-            // ── Layer 3：控制列（running 才顯示，避免載入時誤觸）
-            if vm.phase == .running {
-                VStack(spacing: 0) {
-                    Spacer()
-                    statusBanner(vm: vm)
-                    controlsBar(vm: vm)
-                }
-            }
-
-            // ── Layer 4：狀態遮罩（載入 / 無權限 / 失敗）
-            stateOverlay(vm: vm)
-
-            // ── Layer 5：關閉鍵。v1.4.0 hotfix：**永遠**在最上層。
-            // 之前 stateOverlay 蓋在 topBar 上面，一旦卡在 .starting 就完全點不到，
-            // 加上隱藏了返回鍵，使用者只能強制關閉 App。
-            VStack {
-                topBar(vm: vm)
-                Spacer()
-            }
-        }
-    }
-
-    // MARK: - Top bar
-
-    private func topBar(vm: LiveCameraTranslationViewModel) -> some View {
-        HStack {
-            Spacer()
-            Button {
-                vm.onDisappear()
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white)
-                    .padding(12)
-                    .background(Circle().fill(.black.opacity(0.45)))
-            }
-            .accessibilityLabel(Text("live.action.close"))
-        }
-        .padding(.horizontal, Theme.Spacing.md)
-        .padding(.top, Theme.Spacing.sm)
-    }
-
-    // MARK: - Status banner
-
-    @ViewBuilder
-    private func statusBanner(vm: LiveCameraTranslationViewModel) -> some View {
-        VStack(spacing: 6) {
-            if vm.isThermallyThrottled {
-                banner(icon: "thermometer.high", key: "live.hint.thermal", tint: .orange)
-            }
-            if vm.showsAimHint {
-                banner(icon: "viewfinder", key: "live.hint.aim", tint: .white)
-            }
-            if vm.isPaused {
-                banner(icon: "pause.fill", key: "live.hint.paused", tint: .white)
-            }
-        }
-        .padding(.bottom, Theme.Spacing.sm)
-    }
-
-    private func banner(icon: String, key: LocalizedStringKey, tint: Color) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-            Text(key)
-        }
-        .font(.system(size: 13, weight: .medium))
-        .foregroundStyle(tint)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 7)
-        .background(Capsule().fill(.black.opacity(0.6)))
-    }
-
-    // MARK: - Controls
-
-    private func controlsBar(vm: LiveCameraTranslationViewModel) -> some View {
-        HStack(spacing: Theme.Spacing.sm) {
-            ConversationLanguageMenu(
-                current: vm.sourceLanguage,
-                options: Language.allCases,
-                excluded: vm.targetLanguage,
-                disabled: false,
-                onSelect: { vm.setSource($0) }
-            )
-
-            Button { vm.swapLanguages() } label: {
-                Image(systemName: "arrow.left.arrow.right")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .padding(9)
-                    .background(Circle().fill(.white.opacity(0.18)))
-            }
-            .accessibilityLabel(Text("交換來源與譯文"))
-
-            ConversationLanguageMenu(
-                current: vm.targetLanguage,
-                options: vm.availableTargets,
-                excluded: vm.sourceLanguage,
-                disabled: false,
-                onSelect: { vm.setTarget($0) }
-            )
-
-            Button { vm.togglePause() } label: {
-                Image(systemName: vm.isPaused ? "play.fill" : "pause.fill")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .padding(9)
-                    .background(Circle().fill(.white.opacity(0.18)))
-            }
-            .accessibilityLabel(Text(vm.isPaused
-                                     ? LocalizedStringKey("live.action.resume")
-                                     : LocalizedStringKey("live.action.pause")))
-        }
-        .padding(.horizontal, Theme.Spacing.md)
-        .padding(.vertical, Theme.Spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
-                .fill(.black.opacity(0.5))
-        )
-        .padding(.horizontal, Theme.Spacing.md)
-        .padding(.bottom, Theme.Spacing.lg)
-    }
-
-    // MARK: - Phase overlays
-
-    @ViewBuilder
-    private func stateOverlay(vm: LiveCameraTranslationViewModel) -> some View {
-        switch vm.phase {
-        // hotfix2：兩個階段給**不同**訊息。之前共用同一句「翻譯引擎啟動中」，
-        // 導致卡在權限階段時完全看不出來，白白多花一輪 QA。
-        case .requestingPermission:
-            loadingCard(vm: vm, textKey: "live.status.requesting_permission")
-
-        case .starting:
-            loadingCard(vm: vm, textKey: "live.status.starting")
-
-        case .noPermission:
-            centeredCard {
-                VStack(spacing: Theme.Spacing.md) {
-                    Image(systemName: "camera.fill")
-                        .font(.system(size: 34))
-                        .foregroundStyle(.white)
-                    Text("live.permission.title")
-                        .font(Theme.Font.headline)
-                        .foregroundStyle(.white)
-                    Text("live.permission.body")
-                        .font(Theme.Font.caption)
-                        .foregroundStyle(.white.opacity(0.85))
-                        .multilineTextAlignment(.center)
-                    Button("live.permission.open_settings") { vm.openSystemSettings() }
-                        .buttonStyle(.borderedProminent)
-                        .tint(Theme.Colors.accent)
-                }
-            }
-
-        case .failed(let message):
-            centeredCard {
-                VStack(spacing: Theme.Spacing.md) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 30))
-                        .foregroundStyle(.orange)
-                    Text(message)
-                        .font(Theme.Font.caption)
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.center)
-                    HStack(spacing: Theme.Spacing.md) {
-                        Button("live.action.retry") { vm.retry() }
-                            .buttonStyle(.borderedProminent)
-                            .tint(Theme.Colors.accent)
-                        Button("live.action.cancel") {
-                            vm.onDisappear()
-                            dismiss()
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.white)
-                    }
-                }
-            }
-
-        case .idle, .running:
-            EmptyView()
-        }
-    }
-
-    /// 載入中卡片。一定要帶「取消」，任何階段都不能把使用者關在裡面。
-    private func loadingCard(vm: LiveCameraTranslationViewModel,
-                             textKey: LocalizedStringKey) -> some View {
-        centeredCard {
-            VStack(spacing: Theme.Spacing.md) {
-                ProgressView().tint(.white)
-                Text(textKey)
-                    .font(Theme.Font.body)
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-                Button("live.action.cancel") {
-                    vm.onDisappear()
-                    dismiss()
-                }
-                .buttonStyle(.bordered)
-                .tint(.white)
-            }
-        }
-    }
-
-    private func centeredCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        ZStack {
-            Color.black.opacity(0.55).ignoresSafeArea()
-            content()
-                .padding(Theme.Spacing.lg)
-                .background(
-                    RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
-                        .fill(.black.opacity(0.75))
-                )
-                .padding(Theme.Spacing.xl)
-        }
-    }
-
     /// 延遲建立 VM（需要 deps）
     @MainActor
     private final class VMHolder: ObservableObject {
         @Published var vm: LiveCameraTranslationViewModel?
+    }
+
+    // MARK: - Content
+
+    private struct Content: View {
+        @ObservedObject var vm: LiveCameraTranslationViewModel
+        @Environment(\.dismiss) private var dismiss
+
+        /// 直向 720x1280 的長寬比
+        private let cameraAspect: CGFloat = 720.0 / 1280.0
+
+        var body: some View {
+            ZStack {
+                // ── Layer 1：相機畫面
+                CameraPreviewLayer(session: vm.captureSession)
+                    .ignoresSafeArea()
+
+                // ── Layer 2：譯文疊層
+                GeometryReader { geo in
+                    ForEach(vm.regions) { region in
+                        TextOverlayView(
+                            region: region,
+                            viewSize: geo.size,
+                            cameraAspect: cameraAspect
+                        )
+                    }
+                    .animation(.easeOut(duration: 0.18), value: vm.regions)
+                }
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+
+                // ── Layer 3：控制列（running 才顯示，避免載入時誤觸）
+                if vm.phase == .running {
+                    VStack(spacing: 0) {
+                        Spacer()
+                        statusBanner
+                        controlsBar
+                    }
+                }
+
+                // ── Layer 4：狀態遮罩
+                stateOverlay
+
+                // ── Layer 5：關閉鍵，永遠可按
+                VStack {
+                    topBar
+                    Spacer()
+                }
+            }
+        }
+
+        // MARK: Top bar
+
+        private var topBar: some View {
+            HStack {
+                Spacer()
+                Button {
+                    vm.onDisappear()
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(12)
+                        .background(Circle().fill(.black.opacity(0.45)))
+                }
+                .accessibilityLabel(Text("live.action.close"))
+            }
+            .padding(.horizontal, Theme.Spacing.md)
+            .padding(.top, Theme.Spacing.sm)
+        }
+
+        // MARK: Status banner
+
+        @ViewBuilder
+        private var statusBanner: some View {
+            VStack(spacing: 6) {
+                if vm.isThermallyThrottled {
+                    banner(icon: "thermometer.high", key: "live.hint.thermal", tint: .orange)
+                }
+                if vm.showsAimHint {
+                    banner(icon: "viewfinder", key: "live.hint.aim", tint: .white)
+                }
+                if vm.hasTextButNoTranslation {
+                    banner(icon: "arrow.down.circle", key: "live.hint.pack_not_ready", tint: .yellow)
+                }
+                if vm.isPaused {
+                    banner(icon: "pause.fill", key: "live.hint.paused", tint: .white)
+                }
+            }
+            .padding(.bottom, Theme.Spacing.sm)
+        }
+
+        private func banner(icon: String, key: LocalizedStringKey, tint: Color) -> some View {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                Text(key)
+            }
+            .font(.system(size: 13, weight: .medium))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(Capsule().fill(.black.opacity(0.6)))
+        }
+
+        // MARK: Controls
+
+        private var controlsBar: some View {
+            HStack(spacing: Theme.Spacing.sm) {
+                ConversationLanguageMenu(
+                    current: vm.sourceLanguage,
+                    options: Language.allCases,
+                    excluded: vm.targetLanguage,
+                    disabled: false,
+                    onSelect: { vm.setSource($0) }
+                )
+
+                Button { vm.swapLanguages() } label: {
+                    Image(systemName: "arrow.left.arrow.right")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(9)
+                        .background(Circle().fill(.white.opacity(0.18)))
+                }
+                .accessibilityLabel(Text("交換來源與譯文"))
+
+                ConversationLanguageMenu(
+                    current: vm.targetLanguage,
+                    options: vm.availableTargets,
+                    excluded: vm.sourceLanguage,
+                    disabled: false,
+                    onSelect: { vm.setTarget($0) }
+                )
+
+                Button { vm.togglePause() } label: {
+                    Image(systemName: vm.isPaused ? "play.fill" : "pause.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(9)
+                        .background(Circle().fill(.white.opacity(0.18)))
+                }
+                .accessibilityLabel(Text(vm.isPaused
+                                         ? LocalizedStringKey("live.action.resume")
+                                         : LocalizedStringKey("live.action.pause")))
+            }
+            .padding(.horizontal, Theme.Spacing.md)
+            .padding(.vertical, Theme.Spacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
+                    .fill(.black.opacity(0.5))
+            )
+            .padding(.horizontal, Theme.Spacing.md)
+            .padding(.bottom, Theme.Spacing.lg)
+        }
+
+        // MARK: Phase overlays
+
+        @ViewBuilder
+        private var stateOverlay: some View {
+            switch vm.phase {
+            case .requestingPermission:
+                loadingCard(textKey: "live.status.requesting_permission")
+
+            case .starting:
+                loadingCard(textKey: "live.status.starting")
+
+            case .noPermission:
+                centeredCard {
+                    VStack(spacing: Theme.Spacing.md) {
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 34))
+                            .foregroundStyle(.white)
+                        Text("live.permission.title")
+                            .font(Theme.Font.headline)
+                            .foregroundStyle(.white)
+                        Text("live.permission.body")
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(.white.opacity(0.85))
+                            .multilineTextAlignment(.center)
+                        Button("live.permission.open_settings") { vm.openSystemSettings() }
+                            .buttonStyle(.borderedProminent)
+                            .tint(Theme.Colors.accent)
+                    }
+                }
+
+            case .failed(let message):
+                centeredCard {
+                    VStack(spacing: Theme.Spacing.md) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 30))
+                            .foregroundStyle(.orange)
+                        Text(message)
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
+                        HStack(spacing: Theme.Spacing.md) {
+                            Button("live.action.retry") { vm.retry() }
+                                .buttonStyle(.borderedProminent)
+                                .tint(Theme.Colors.accent)
+                            Button("live.action.cancel") {
+                                vm.onDisappear()
+                                dismiss()
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(.white)
+                        }
+                    }
+                }
+
+            case .idle, .running:
+                EmptyView()
+            }
+        }
+
+        /// 載入中卡片。一定要帶「取消」，任何階段都不能把使用者關在裡面。
+        private func loadingCard(textKey: LocalizedStringKey) -> some View {
+            centeredCard {
+                VStack(spacing: Theme.Spacing.md) {
+                    ProgressView().tint(.white)
+                    Text(textKey)
+                        .font(Theme.Font.body)
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                    Button("live.action.cancel") {
+                        vm.onDisappear()
+                        dismiss()
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.white)
+                }
+            }
+        }
+
+        private func centeredCard<C: View>(@ViewBuilder content: () -> C) -> some View {
+            ZStack {
+                Color.black.opacity(0.55).ignoresSafeArea()
+                content()
+                    .padding(Theme.Spacing.lg)
+                    .background(
+                        RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
+                            .fill(.black.opacity(0.75))
+                    )
+                    .padding(Theme.Spacing.xl)
+            }
+        }
     }
 }
 

@@ -241,3 +241,7 @@
 "live.status.requesting_permission" = "正在請求相機權限…";
 "live.stage.permission" = "卡在：請求相機權限";
 "live.stage.camera" = "卡在：啟動相機";
+
+/* v1.4.0 hotfix3 */
+"live.hint.pack_not_ready" = "已偵測到文字，語言包尚未就緒";
+"live.error.translate_timeout" = "翻譯逾時";

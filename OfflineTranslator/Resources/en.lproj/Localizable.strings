@@ -241,3 +241,7 @@
 "live.status.requesting_permission" = "Requesting camera access...";
 "live.stage.permission" = "stuck at: requesting camera access";
 "live.stage.camera" = "stuck at: starting camera";
+
+/* v1.4.0 hotfix3 */
+"live.hint.pack_not_ready" = "Text detected, language pack not ready yet";
+"live.error.translate_timeout" = "Translation timed out";

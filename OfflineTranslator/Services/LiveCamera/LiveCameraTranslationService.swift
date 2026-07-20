@@ -40,6 +40,8 @@ enum LiveCameraError: LocalizedError {
     case configurationFailed(String)
     /// v1.4.0 hotfix：啟動看門狗逾時。避免使用者被卡在「翻譯引擎啟動中」無限等待。
     case startTimeout
+    /// v1.4.0 hotfix3：單筆翻譯逾時。沒有它，一次卡住的 bridge 請求就會讓整條 pipeline 停擺。
+    case translateTimeout
 
     var errorDescription: String? {
         switch self {
@@ -51,6 +53,8 @@ enum LiveCameraError: LocalizedError {
             return String(localized: "live.error.config_failed") + "\n" + detail
         case .startTimeout:
             return String(localized: "live.error.start_timeout")
+        case .translateTimeout:
+            return String(localized: "live.error.translate_timeout")
         }
     }
 }
