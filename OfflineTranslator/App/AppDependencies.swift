@@ -12,6 +12,8 @@ final class AppDependencies: ObservableObject {
     let asrService: ASRService
     let ttsService: TTSService
     let languageDetector: LanguageDetector
+    /// v1.4.0：即時鏡頭翻譯
+    let liveCameraService: LiveCameraTranslationService
 
     // Data
     let modelContainer: ModelContainer
@@ -49,6 +51,7 @@ final class AppDependencies: ObservableObject {
             asrService: asr,
             ttsService: tts,
             languageDetector: detector,
+            liveCameraService: LiveCameraVisionService(mtService: mt),
             modelContainer: container,
             historyRepository: history,
             languagePackRepository: packRepo,
@@ -89,6 +92,7 @@ final class AppDependencies: ObservableObject {
             asrService: asr,
             ttsService: tts,
             languageDetector: detector,
+            liveCameraService: LiveCameraServiceMock(),
             modelContainer: container,
             historyRepository: history,
             languagePackRepository: packRepo,
@@ -115,6 +119,7 @@ final class AppDependencies: ObservableObject {
         asrService: ASRService,
         ttsService: TTSService,
         languageDetector: LanguageDetector,
+        liveCameraService: LiveCameraTranslationService,
         modelContainer: ModelContainer,
         historyRepository: HistoryRepository,
         languagePackRepository: LanguagePackRepository,
@@ -130,6 +135,7 @@ final class AppDependencies: ObservableObject {
         self.asrService = asrService
         self.ttsService = ttsService
         self.languageDetector = languageDetector
+        self.liveCameraService = liveCameraService
         self.modelContainer = modelContainer
         self.historyRepository = historyRepository
         self.languagePackRepository = languagePackRepository
