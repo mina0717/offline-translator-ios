@@ -27,13 +27,17 @@ struct LiveCameraTranslationView: View {
         }
         .navigationBarBackButtonHidden(true)
         .statusBarHidden(true)
-        .task {
+        // v1.4.0 hotfix2：改用同步 onAppear 建立 VM，啟動流程由 VM 自己的 Task 驅動。
+        // 之前寫在 `.task { }` 裡，設定 @Published vm 會觸發 view 更新，
+        // SwiftUI 可能取消並重啟該 task —— 正在 await 的權限請求就此人間蒸發，
+        // 流程永遠停在半路（build #53 卡住且看門狗沒觸發的真正原因）。
+        .onAppear {
             if holder.vm == nil {
                 holder.vm = LiveCameraTranslationViewModel(
                     service: deps.liveCameraService
                 )
             }
-            await holder.vm?.onAppear()
+            holder.vm?.begin()
         }
         .onDisappear { holder.vm?.onDisappear() }
     }
@@ -187,22 +191,13 @@ struct LiveCameraTranslationView: View {
     @ViewBuilder
     private func stateOverlay(vm: LiveCameraTranslationViewModel) -> some View {
         switch vm.phase {
-        case .requestingPermission, .starting:
-            centeredCard {
-                VStack(spacing: Theme.Spacing.md) {
-                    ProgressView().tint(.white)
-                    Text("live.status.starting")
-                        .font(Theme.Font.body)
-                        .foregroundStyle(.white)
-                    // hotfix：載入中也一定要有退路
-                    Button("live.action.cancel") {
-                        vm.onDisappear()
-                        dismiss()
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.white)
-                }
-            }
+        // hotfix2：兩個階段給**不同**訊息。之前共用同一句「翻譯引擎啟動中」，
+        // 導致卡在權限階段時完全看不出來，白白多花一輪 QA。
+        case .requestingPermission:
+            loadingCard(vm: vm, textKey: "live.status.requesting_permission")
+
+        case .starting:
+            loadingCard(vm: vm, textKey: "live.status.starting")
 
         case .noPermission:
             centeredCard {
@@ -234,7 +229,7 @@ struct LiveCameraTranslationView: View {
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.center)
                     HStack(spacing: Theme.Spacing.md) {
-                        Button("live.action.retry") { Task { await vm.retry() } }
+                        Button("live.action.retry") { vm.retry() }
                             .buttonStyle(.borderedProminent)
                             .tint(Theme.Colors.accent)
                         Button("live.action.cancel") {
@@ -249,6 +244,26 @@ struct LiveCameraTranslationView: View {
 
         case .idle, .running:
             EmptyView()
+        }
+    }
+
+    /// 載入中卡片。一定要帶「取消」，任何階段都不能把使用者關在裡面。
+    private func loadingCard(vm: LiveCameraTranslationViewModel,
+                             textKey: LocalizedStringKey) -> some View {
+        centeredCard {
+            VStack(spacing: Theme.Spacing.md) {
+                ProgressView().tint(.white)
+                Text(textKey)
+                    .font(Theme.Font.body)
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                Button("live.action.cancel") {
+                    vm.onDisappear()
+                    dismiss()
+                }
+                .buttonStyle(.bordered)
+                .tint(.white)
+            }
         }
     }
 

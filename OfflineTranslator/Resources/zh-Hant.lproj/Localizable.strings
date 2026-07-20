@@ -236,3 +236,8 @@
 "live.action.cancel" = "取消";
 "live.action.retry" = "重試";
 "live.error.start_timeout" = "相機啟動逾時。請確認沒有其他 App 正在使用相機，然後重試。";
+
+// MARK: - v1.4.0 hotfix2：啟動階段可辨識
+"live.status.requesting_permission" = "正在請求相機權限…";
+"live.stage.permission" = "卡在：請求相機權限";
+"live.stage.camera" = "卡在：啟動相機";

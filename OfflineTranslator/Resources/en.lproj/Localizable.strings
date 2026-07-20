@@ -236,3 +236,8 @@
 "live.action.cancel" = "Cancel";
 "live.action.retry" = "Retry";
 "live.error.start_timeout" = "Camera startup timed out. Make sure no other app is using the camera, then try again.";
+
+// MARK: - v1.4.0 hotfix2: distinguishable startup stages
+"live.status.requesting_permission" = "Requesting camera access...";
+"live.stage.permission" = "stuck at: requesting camera access";
+"live.stage.camera" = "stuck at: starting camera";

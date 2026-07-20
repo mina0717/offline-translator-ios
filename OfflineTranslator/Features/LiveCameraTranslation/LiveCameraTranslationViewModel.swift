@@ -46,10 +46,13 @@ final class LiveCameraTranslationViewModel: ObservableObject {
     private var streamTask: Task<Void, Never>?
     private var thermalObserver: NSObjectProtocol?
     private var hintTask: Task<Void, Never>?
-    /// v1.4.0 hotfix：啟動看門狗。start() 若卡住不返回，逾時後強制進 .failed，
-    /// 讓使用者看得到錯誤與「重試 / 關閉」，不會被困在載入畫面。
+    /// v1.4.0 hotfix2：整段啟動流程自己持有的 Task。
+    /// **不能**靠 SwiftUI 的 `.task { }` 驅動 —— 那個會隨 view 更新被取消，
+    /// 一旦在 await 權限請求時被砍掉，流程就永遠停在半路（這正是 build #53 的症狀）。
+    private var startupTask: Task<Void, Never>?
+    /// 啟動看門狗。**涵蓋整段流程**（權限 + capture 啟動），不是只有 start()。
     private var startWatchdog: Task<Void, Never>?
-    private static let startTimeoutSeconds: UInt64 = 8
+    private static let startTimeoutSeconds: UInt64 = 10
 
     var captureSession: AVCaptureSession? { service.captureSession }
 
@@ -74,8 +77,31 @@ final class LiveCameraTranslationViewModel: ObservableObject {
 
     // MARK: - Lifecycle
 
-    func onAppear() async {
+    /// v1.4.0 hotfix2：由 View 的 `onAppear`（同步）呼叫。
+    /// 啟動流程掛在自己的 Task 上，不受 SwiftUI view 更新 / `.task` 取消影響。
+    func begin() {
         guard phase == .idle || phase == .noPermission || isFailed else { return }
+        startupTask?.cancel()
+        startupTask = Task { [weak self] in
+            await self?.runStartup()
+        }
+    }
+
+    private func runStartup() async {
+        // 看門狗**先**開，涵蓋整段流程。
+        // build #53 的看門狗開在權限檢查之後，結果卡在權限那步時它根本沒被建立。
+        startWatchdog?.cancel()
+        startWatchdog = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: Self.startTimeoutSeconds * 1_000_000_000)
+            guard let self, !Task.isCancelled else { return }
+            switch self.phase {
+            case .requestingPermission, .starting:
+                self.phase = .failed(self.timeoutMessage(for: self.phase))
+            default:
+                break
+            }
+        }
+        defer { startWatchdog?.cancel(); startWatchdog = nil }
 
         // 1. 相機權限
         var status = permissions.status(for: .camera)
@@ -87,28 +113,19 @@ final class LiveCameraTranslationViewModel: ObservableObject {
             phase = .noPermission
             return
         }
+        guard !Task.isCancelled else { return }
 
-        // 2. 啟動 capture（含看門狗，避免無限等待）
+        // 2. 啟動 capture
         phase = .starting
-        startWatchdog?.cancel()
-        startWatchdog = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: Self.startTimeoutSeconds * 1_000_000_000)
-            guard let self, !Task.isCancelled, self.phase == .starting else { return }
-            let message = LiveCameraError.startTimeout.errorDescription ?? ""
-            self.phase = .failed(message)
-        }
-
         do {
             try await service.start()
         } catch {
-            startWatchdog?.cancel(); startWatchdog = nil
             let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             phase = .failed(message)
             return
         }
-        startWatchdog?.cancel(); startWatchdog = nil
 
-        // 看門狗可能已經把 phase 打到 .failed（start 太慢），此時不要覆蓋掉錯誤畫面
+        // 看門狗可能已經把 phase 打到 .failed，別覆蓋掉錯誤畫面
         guard phase == .starting else { return }
 
         // 3. 訂閱結果
@@ -118,13 +135,26 @@ final class LiveCameraTranslationViewModel: ObservableObject {
         phase = .running
     }
 
+    /// 逾時訊息帶上卡住的階段，讓使用者回報時我們一眼就知道死在哪
+    private func timeoutMessage(for phase: Phase) -> String {
+        let base = LiveCameraError.startTimeout.errorDescription ?? ""
+        let stage: String
+        switch phase {
+        case .requestingPermission: stage = String(localized: "live.stage.permission")
+        case .starting:             stage = String(localized: "live.stage.camera")
+        default:                    stage = ""
+        }
+        return stage.isEmpty ? base : "\(base)\n(\(stage))"
+    }
+
     /// 從 .failed / .noPermission 重試
-    func retry() async {
+    func retry() {
         phase = .idle
-        await onAppear()
+        begin()
     }
 
     func onDisappear() {
+        startupTask?.cancel(); startupTask = nil
         streamTask?.cancel(); streamTask = nil
         hintTask?.cancel(); hintTask = nil
         startWatchdog?.cancel(); startWatchdog = nil
