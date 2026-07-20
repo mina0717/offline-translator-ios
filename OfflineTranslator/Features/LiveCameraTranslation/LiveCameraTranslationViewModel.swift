@@ -46,6 +46,10 @@ final class LiveCameraTranslationViewModel: ObservableObject {
     private var streamTask: Task<Void, Never>?
     private var thermalObserver: NSObjectProtocol?
     private var hintTask: Task<Void, Never>?
+    /// v1.4.0 hotfix：啟動看門狗。start() 若卡住不返回，逾時後強制進 .failed，
+    /// 讓使用者看得到錯誤與「重試 / 關閉」，不會被困在載入畫面。
+    private var startWatchdog: Task<Void, Never>?
+    private static let startTimeoutSeconds: UInt64 = 8
 
     var captureSession: AVCaptureSession? { service.captureSession }
 
@@ -84,15 +88,28 @@ final class LiveCameraTranslationViewModel: ObservableObject {
             return
         }
 
-        // 2. 啟動 capture
+        // 2. 啟動 capture（含看門狗，避免無限等待）
         phase = .starting
+        startWatchdog?.cancel()
+        startWatchdog = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: Self.startTimeoutSeconds * 1_000_000_000)
+            guard let self, !Task.isCancelled, self.phase == .starting else { return }
+            let message = LiveCameraError.startTimeout.errorDescription ?? ""
+            self.phase = .failed(message)
+        }
+
         do {
             try await service.start()
         } catch {
+            startWatchdog?.cancel(); startWatchdog = nil
             let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             phase = .failed(message)
             return
         }
+        startWatchdog?.cancel(); startWatchdog = nil
+
+        // 看門狗可能已經把 phase 打到 .failed（start 太慢），此時不要覆蓋掉錯誤畫面
+        guard phase == .starting else { return }
 
         // 3. 訂閱結果
         subscribeStream()
@@ -101,9 +118,16 @@ final class LiveCameraTranslationViewModel: ObservableObject {
         phase = .running
     }
 
+    /// 從 .failed / .noPermission 重試
+    func retry() async {
+        phase = .idle
+        await onAppear()
+    }
+
     func onDisappear() {
         streamTask?.cancel(); streamTask = nil
         hintTask?.cancel(); hintTask = nil
+        startWatchdog?.cancel(); startWatchdog = nil
         if let obs = thermalObserver {
             NotificationCenter.default.removeObserver(obs)
             thermalObserver = nil

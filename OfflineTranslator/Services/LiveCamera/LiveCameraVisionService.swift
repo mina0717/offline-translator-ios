@@ -30,10 +30,19 @@ final class LiveCameraVisionService: NSObject, LiveCameraTranslationService {
 
     private nonisolated let session = AVCaptureSession()
     private nonisolated let videoOutput = AVCaptureVideoDataOutput()
+    /// **只**用來送 sample buffer 給 delegate。
     private nonisolated let videoQueue = DispatchQueue(
         label: "com.mina0717.offlinetranslator.live-camera.video",
         qos: .userInitiated
     )
+    /// v1.4.0 hotfix：session 的設定 / start / stop 一律走這條，**不能跟 videoQueue 共用**。
+    /// 共用會造成 `startRunning()` 與 sample buffer 交付互卡（Apple AVCam 範例也是分兩條）。
+    /// 同時所有 session 操作都不能在 main thread 上跑，否則 UI 會凍住。
+    private nonisolated let sessionQueue = DispatchQueue(
+        label: "com.mina0717.offlinetranslator.live-camera.session"
+    )
+    /// 只在 sessionQueue 上讀寫
+    private nonisolated let configuredFlag = ConfiguredFlag()
     private nonisolated let throttler = FrameThrottler(targetFPS: 5, throttledFPS: 2)
     /// 跨執行緒共享的設定（video queue 讀、MainActor 寫）
     private nonisolated let shared = SharedConfig()
@@ -70,18 +79,23 @@ final class LiveCameraVisionService: NSObject, LiveCameraTranslationService {
     func start() async throws {
         guard !session.isRunning else { return }
 
-        try configureSessionIfNeeded()
-
-        // startRunning() 是同步阻塞呼叫，不能在 MainActor 上跑
-        let s = session
-        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
-            videoQueue.async {
-                s.startRunning()
-                c.resume()
+        // v1.4.0 hotfix：設定 + startRunning **全部**在 sessionQueue 上做。
+        // 之前 configureSession 跑在 MainActor，`commitConfiguration()` 會把主執行緒卡住，
+        // 畫面就凍在「翻譯引擎啟動中」。
+        try await withCheckedThrowingContinuation { (c: CheckedContinuation<Void, Error>) in
+            sessionQueue.async { [self] in
+                do {
+                    try configureSessionOnSessionQueue()
+                    if !session.isRunning { session.startRunning() }
+                    c.resume()
+                } catch {
+                    c.resume(throwing: error)
+                }
             }
         }
 
-        // 進場先 preheat 當前語言對，避免第一次翻譯卡在語言包下載
+        // 進場先 preheat 當前語言對，避免第一次翻譯卡在語言包下載。
+        // 一定要 detached 且不能讓它擋住 start()，因為 bridge 可能等不到 View 的 translationTask。
         let pair = currentPair
         Task.detached { [mtService] in
             await Self.preheat(pair: pair, mtService: mtService)
@@ -89,9 +103,8 @@ final class LiveCameraVisionService: NSObject, LiveCameraTranslationService {
     }
 
     func stop() {
-        let s = session
-        videoQueue.async {
-            if s.isRunning { s.stopRunning() }
+        sessionQueue.async { [session] in
+            if session.isRunning { session.stopRunning() }
         }
         previousRegions = []
         continuation.yield([])
@@ -122,10 +135,9 @@ final class LiveCameraVisionService: NSObject, LiveCameraTranslationService {
 
     // MARK: - Session configuration
 
-    private var didConfigure = false
-
-    private func configureSessionIfNeeded() throws {
-        guard !didConfigure else { return }
+    /// **必須在 sessionQueue 上呼叫**（不是 MainActor）。
+    private nonisolated func configureSessionOnSessionQueue() throws {
+        guard !configuredFlag.isConfigured else { return }
 
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
             throw LiveCameraError.cameraUnavailable
@@ -162,7 +174,7 @@ final class LiveCameraVisionService: NSObject, LiveCameraTranslationService {
         session.addOutput(videoOutput)
         session.commitConfiguration()
 
-        didConfigure = true
+        configuredFlag.markConfigured()
     }
 
     // MARK: - Helpers
@@ -319,6 +331,22 @@ private extension LiveCameraVisionService {
         let unionArea = a.width * a.height + b.width * b.height - interArea
         guard unionArea > 0 else { return 0 }
         return interArea / unionArea
+    }
+}
+
+/// session 是否已設定過。只在 sessionQueue 上動，但用 lock 保守處理。
+private final class ConfiguredFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+
+    var isConfigured: Bool {
+        lock.lock(); defer { lock.unlock() }
+        return value
+    }
+
+    func markConfigured() {
+        lock.lock(); defer { lock.unlock() }
+        value = true
     }
 }
 

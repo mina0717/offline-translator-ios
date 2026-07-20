@@ -231,3 +231,8 @@
 "live.error.camera_unavailable" = "找不到可用的相機。";
 "live.error.permission_denied" = "尚未允許使用相機，請到設定開啟。";
 "live.error.config_failed" = "相機初始化失敗。";
+
+// MARK: - v1.4.0 hotfix：啟動卡死修復
+"live.action.cancel" = "取消";
+"live.action.retry" = "重試";
+"live.error.start_timeout" = "相機啟動逾時。請確認沒有其他 App 正在使用相機，然後重試。";

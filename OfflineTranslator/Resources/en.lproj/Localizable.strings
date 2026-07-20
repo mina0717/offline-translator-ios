@@ -231,3 +231,8 @@
 "live.error.camera_unavailable" = "No usable camera found.";
 "live.error.permission_denied" = "Camera access is not granted. Please enable it in Settings.";
 "live.error.config_failed" = "Camera setup failed.";
+
+// MARK: - v1.4.0 hotfix: startup hang fix
+"live.action.cancel" = "Cancel";
+"live.action.retry" = "Retry";
+"live.error.start_timeout" = "Camera startup timed out. Make sure no other app is using the camera, then try again.";

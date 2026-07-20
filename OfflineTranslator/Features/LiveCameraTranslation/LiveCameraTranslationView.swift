@@ -59,15 +59,26 @@ struct LiveCameraTranslationView: View {
             .ignoresSafeArea()
             .allowsHitTesting(false)
 
-            // ── Layer 3：狀態與控制
-            VStack(spacing: 0) {
+            // ── Layer 3：控制列（running 才顯示，避免載入時誤觸）
+            if vm.phase == .running {
+                VStack(spacing: 0) {
+                    Spacer()
+                    statusBanner(vm: vm)
+                    controlsBar(vm: vm)
+                }
+            }
+
+            // ── Layer 4：狀態遮罩（載入 / 無權限 / 失敗）
+            stateOverlay(vm: vm)
+
+            // ── Layer 5：關閉鍵。v1.4.0 hotfix：**永遠**在最上層。
+            // 之前 stateOverlay 蓋在 topBar 上面，一旦卡在 .starting 就完全點不到，
+            // 加上隱藏了返回鍵，使用者只能強制關閉 App。
+            VStack {
                 topBar(vm: vm)
                 Spacer()
-                statusBanner(vm: vm)
-                controlsBar(vm: vm)
             }
         }
-        .overlay { stateOverlay(vm: vm) }
     }
 
     // MARK: - Top bar
@@ -178,11 +189,18 @@ struct LiveCameraTranslationView: View {
         switch vm.phase {
         case .requestingPermission, .starting:
             centeredCard {
-                VStack(spacing: Theme.Spacing.sm) {
+                VStack(spacing: Theme.Spacing.md) {
                     ProgressView().tint(.white)
                     Text("live.status.starting")
                         .font(Theme.Font.body)
                         .foregroundStyle(.white)
+                    // hotfix：載入中也一定要有退路
+                    Button("live.action.cancel") {
+                        vm.onDisappear()
+                        dismiss()
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.white)
                 }
             }
 
@@ -207,7 +225,7 @@ struct LiveCameraTranslationView: View {
 
         case .failed(let message):
             centeredCard {
-                VStack(spacing: Theme.Spacing.sm) {
+                VStack(spacing: Theme.Spacing.md) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 30))
                         .foregroundStyle(.orange)
@@ -215,6 +233,17 @@ struct LiveCameraTranslationView: View {
                         .font(Theme.Font.caption)
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.center)
+                    HStack(spacing: Theme.Spacing.md) {
+                        Button("live.action.retry") { Task { await vm.retry() } }
+                            .buttonStyle(.borderedProminent)
+                            .tint(Theme.Colors.accent)
+                        Button("live.action.cancel") {
+                            vm.onDisappear()
+                            dismiss()
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.white)
+                    }
                 }
             }
 
