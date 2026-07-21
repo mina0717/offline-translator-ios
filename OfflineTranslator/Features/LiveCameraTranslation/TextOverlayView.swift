@@ -35,16 +35,20 @@ struct TextOverlayView: View {
                         .fill(.black.opacity(0.78))
                 )
                 .position(x: rect.midX, y: rect.midY)
+                // v1.4.0 hotfix4：位置變動用動畫平滑過去，而不是瞬間跳。
+                // 搭配 service 端的穩定 id + EMA，畫面才不會抖。
+                .animation(.easeOut(duration: 0.25), value: rect)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text("\(region.originalText)，譯為 \(translated)"))
-        } else {
-            // v1.4.0 hotfix3：譯文還沒回來（或翻譯失敗）時，至少把「這裡有偵測到文字」畫出來。
-            // 先前這個分支是空的，導致「OCR 沒抓到字」和「抓到了但翻不出來」在畫面上長得一模一樣，
-            // 完全無從判斷是辨識還是翻譯出問題。
+        } else if region.showsPendingIndicator {
+            // 譯文還沒回來、而且已經等了一小段時間，才畫虛線框。
+            // v1.4.0 hotfix4：改用 showsPendingIndicator 而不是「translatedText == nil」——
+            // 否則每個新區塊都會先閃一下虛線框再變成譯文，也是一種抖動。
             RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .strokeBorder(.yellow.opacity(0.9), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
                 .frame(width: max(rect.width, 24), height: max(rect.height, 14))
                 .position(x: rect.midX, y: rect.midY)
+                .animation(.easeOut(duration: 0.25), value: rect)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text("\(region.originalText)，尚未翻譯"))
         }

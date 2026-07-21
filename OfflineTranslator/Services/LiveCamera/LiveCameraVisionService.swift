@@ -7,12 +7,16 @@ import CoreGraphics
 ///
 /// Pipeline：
 ///   AVCaptureSession(720p) → video queue 每幀
-///     → FrameThrottler 節流到 ~5fps
-///     → VNRecognizeTextRequest(.fast, 含 boundingBox)
+///     → FrameThrottler 節流到 ~3fps
+///     → VNRecognizeTextRequest(.accurate, 含 boundingBox)
+///     → OCRTextQuality 濾掉亂碼（信心 + 字面結構）
 ///     → hop 到 MainActor
-///     → IoU 比對舊 region + EMA 平滑座標（防抖動）
+///     → IoU 比對併進 tracked（穩定 id + EMA 位置 + 文字採信門檻）
 ///     → 查快取 / 序列呼叫 MTService 翻譯
 ///     → emit 到 regionStream
+///
+/// v1.4.0 hotfix4：加入跨影格追蹤（`TrackedRegion`）。核心是「畫面上的文字要有黏性」——
+/// OCR 每幀都會抖，若每幀都重建 region、每幀都改文字，畫面就會像 QA 影片那樣快速亂跳。
 ///
 /// **翻譯必須序列執行**：`AppleTranslationBridge` 一次只持有一個 continuation，
 /// 併發呼叫會讓前一個請求收到 CancellationError。所以這裡用 `isTranslating` 閘門，
@@ -43,7 +47,10 @@ final class LiveCameraVisionService: NSObject, LiveCameraTranslationService {
     )
     /// 只在 sessionQueue 上讀寫
     private nonisolated let configuredFlag = ConfiguredFlag()
-    private nonisolated let throttler = FrameThrottler(targetFPS: 5, throttledFPS: 2)
+    /// v1.4.0 hotfix4：5fps + `.fast` 對著螢幕小字會辨識出大量亂碼。
+    /// 改成 3fps + `.accurate` —— 翻譯目標本來就是靜止的（菜單、路牌、螢幕），
+    /// 少而正確遠比多而錯亂好讀。
+    private nonisolated let throttler = FrameThrottler(targetFPS: 3, throttledFPS: 1.5)
     /// 跨執行緒共享的設定（video queue 讀、MainActor 寫）
     private nonisolated let shared = SharedConfig()
 
@@ -52,8 +59,8 @@ final class LiveCameraVisionService: NSObject, LiveCameraTranslationService {
     private let mtService: MTService
     private var currentPair: LanguagePair
     private var cache = TranslationCache(capacity: 120)
-    /// 上一輪的 region，用來做 IoU 比對 + 位置平滑
-    private var previousRegions: [RecognizedTextRegion] = []
+    /// v1.4.0 hotfix4：跨影格追蹤中的文字區塊。取代原本的 `previousRegions`。
+    private var tracked: [TrackedRegion] = []
     /// 序列閘門：翻譯進行中時丟棄新影格
     private var isTranslating = false
 
@@ -106,7 +113,7 @@ final class LiveCameraVisionService: NSObject, LiveCameraTranslationService {
         sessionQueue.async { [session] in
             if session.isRunning { session.stopRunning() }
         }
-        previousRegions = []
+        tracked = []
         continuation.yield([])
     }
 
@@ -114,7 +121,7 @@ final class LiveCameraVisionService: NSObject, LiveCameraTranslationService {
         guard pair != currentPair else { return }
         currentPair = pair
         cache.removeAll()
-        previousRegions = []
+        tracked = []
         throttler.reset()
         shared.setRecognitionLanguages(Self.recognitionLanguages(for: pair.source))
         continuation.yield([])
@@ -226,9 +233,11 @@ extension LiveCameraVisionService: AVCaptureVideoDataOutputSampleBufferDelegate 
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
         let request = VNRecognizeTextRequest()
-        // 即時模式用 .fast；暫停後的高精度重掃走另一條路徑（ViewModel 觸發）
-        request.recognitionLevel = .fast
+        // v1.4.0 hotfix4：`.fast` 對小字（螢幕、密集排版）會辨識出大量亂碼，
+        // 那些亂碼會被原封不動送進翻譯，再以大黑框蓋在畫面上。改用 `.accurate`。
+        request.recognitionLevel = .accurate
         request.usesLanguageCorrection = true
+        request.minimumTextHeight = OCRTextQuality.minTextHeight
         request.recognitionLanguages = shared.recognitionLanguages()
 
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .right, options: [:])
@@ -242,8 +251,9 @@ extension LiveCameraVisionService: AVCaptureVideoDataOutputSampleBufferDelegate 
         let raw: [(String, CGRect, Float)] = observations.compactMap { obs in
             guard let candidate = obs.topCandidates(1).first else { return nil }
             let text = candidate.string.trimmingCharacters(in: .whitespacesAndNewlines)
-            // 太短或信心太低的直接丟（雜訊）
-            guard text.count >= 2, candidate.confidence >= 0.3 else { return nil }
+            guard candidate.confidence >= OCRTextQuality.minConfidence else { return nil }
+            // 信心值擋不住亂碼（Vision 對亂碼常給高分），再過一層字面結構檢查
+            guard OCRTextQuality.looksLikeRealText(text) else { return nil }
             return (text, obs.boundingBox, candidate.confidence)
         }
 
@@ -264,56 +274,147 @@ private extension LiveCameraVisionService {
     /// 沒有逾時就會讓 `isTranslating` 永遠是 true —— 整條 pipeline 從此再也不動。
     static var translateTimeoutSeconds: UInt64 { 6 }
 
-    /// 翻譯 + 平滑 + emit。翻譯序列化，進行中的話直接丟棄這一輪。
+    /// 認定「同一塊文字」的 IoU 門檻。比舊的 0.7 寬鬆，因為手持鏡頭會晃。
+    static var matchIoU: CGFloat { 0.35 }
+    /// 新的原文要連續被辨識到幾次才換掉畫面上的舊文字。
+    /// 這是止住「文字快速亂跳」的關鍵 —— OCR 每幀都會抖一點，
+    /// 不設這道門檻的話畫面就會跟著每幀重寫一次。
+    static var textCommitHits: Int { 2 }
+    /// 區塊消失後還保留多久。避免 Vision 漏掉一幀就整塊閃爍。
+    static var regionTTL: TimeInterval { 0.8 }
+    /// 區塊出生後多久還沒譯文，才顯示等待中的虛線框。
+    /// 太快顯示會讓畫面在「虛線框 → 譯文」之間閃爍。
+    static var pendingIndicatorDelay: TimeInterval { 0.6 }
+    /// 位置 EMA 係數（保留多少舊位置）
+    static var positionSmoothing: CGFloat { 0.6 }
+
+    /// 追蹤 + 翻譯 + emit。翻譯序列化，進行中的話直接丟棄這一輪。
     func process(raw: [(String, CGRect, Float)]) async {
         guard !isTranslating else { return }
         isTranslating = true
         defer { isTranslating = false }
 
         let pairAtStart = currentPair
+        let now = Date()
 
-        // 1. 先組出「有框、譯文可能還是 nil」的版本並**立刻** emit。
-        //    先前要等整批都翻完才 yield 一次，畫面上好幾秒完全空白，
-        //    看起來就跟「功能根本沒作用」一樣。
-        var output: [RecognizedTextRegion] = []
-        output.reserveCapacity(raw.count)
+        // 1. 把這一幀的辨識結果併進 tracked（比對既有區塊，而不是全部重建）
+        var matchedIndices = Set<Int>()
         for (text, box, confidence) in raw {
-            // 位置平滑：跟上一輪 IoU > 0.7 的視為同一塊，位置做 EMA
-            let smoothedBox = smoothedRect(for: box)
-            output.append(RecognizedTextRegion(
-                originalText: text,
-                translatedText: cache.value(for: text),
-                normalizedRect: smoothedBox,
-                confidence: confidence
-            ))
+            if let idx = bestMatchIndex(for: box, excluding: matchedIndices) {
+                matchedIndices.insert(idx)
+                merge(text: text, box: box, confidence: confidence, into: idx, now: now)
+            } else {
+                let cached = cache.value(for: OCRTextQuality.cacheKey(text))
+                tracked.append(TrackedRegion(
+                    id: UUID(),
+                    bornAt: now,
+                    text: text,
+                    translated: cached,
+                    translatedFor: cached == nil ? nil : text,
+                    rect: box,
+                    confidence: confidence,
+                    candidate: nil,
+                    candidateHits: 0,
+                    lastSeen: now
+                ))
+            }
         }
-        previousRegions = output
-        continuation.yield(output)
 
-        // 2. 逐一補譯文，每翻好一筆就再 emit 一次，讓譯文一個一個浮現。
-        var sent = 0
-        for index in output.indices where output[index].translatedText == nil {
-            guard sent < Self.maxTranslationsPerPass else { break }
-            sent += 1
+        // 2. 太久沒再被看到的區塊才移除（不是漏一幀就刪，那會閃爍）
+        tracked.removeAll { now.timeIntervalSince($0.lastSeen) > Self.regionTTL }
+        emit(now: now)
+
+        // 3. 逐一補譯文（譯文過時或從未翻過的），每翻好一筆就再 emit 一次
+        let pendingIDs = tracked.filter { !$0.isTranslationCurrent }
+            .prefix(Self.maxTranslationsPerPass)
+            .map(\.id)
+
+        for regionID in pendingIDs {
+            guard let idx = tracked.firstIndex(where: { $0.id == regionID }) else { continue }
+            let text = tracked[idx].text
             do {
-                let translated = try await translateWithTimeout(
-                    text: output[index].originalText,
-                    pair: pairAtStart
-                )
+                let translated = try await translateWithTimeout(text: text, pair: pairAtStart)
                 // 翻譯期間使用者可能換了語言 → 這批結果作廢
                 guard currentPair == pairAtStart else { return }
-                cache.set(translated, for: output[index].originalText)
-                output[index].translatedText = translated
-                previousRegions = output
-                continuation.yield(output)
+                cache.set(translated, for: OCRTextQuality.cacheKey(text))
+                // await 期間 tracked 可能已經變動，用 id 重新定位；
+                // 而且要確認原文還是當初送翻的那段（可能又 commit 了新的）
+                guard let current = tracked.firstIndex(where: { $0.id == regionID }),
+                      tracked[current].text == text else { continue }
+                tracked[current].translated = translated
+                tracked[current].translatedFor = text
+                emit(now: Date())
             } catch {
-                // 單一區塊翻譯失敗不影響整批（可能是語言包還在下載）。
-                // 畫面上那一塊會留著黃色虛線框，使用者看得出「有偵測到但沒翻出來」。
                 #if DEBUG
                 print("ℹ️ live camera translate failed: \(error)")
                 #endif
             }
         }
+    }
+
+    /// 把新的辨識結果併進既有區塊。
+    ///
+    /// 重點在於**譯文有黏性**：位置立刻跟上，但畫面上的文字不會因為 OCR 抖了一下就換掉。
+    /// 新原文必須連續出現 `textCommitHits` 次才會被採信，
+    /// 而且在新譯文回來之前，舊譯文會繼續留在畫面上（不會退回虛線框）。
+    func merge(text: String, box: CGRect, confidence: Float, into idx: Int, now: Date) {
+        tracked[idx].rect = Self.smoothed(old: tracked[idx].rect, new: box)
+        tracked[idx].lastSeen = now
+        tracked[idx].confidence = confidence
+
+        if text == tracked[idx].text {
+            tracked[idx].candidate = nil
+            tracked[idx].candidateHits = 0
+            return
+        }
+
+        if text == tracked[idx].candidate {
+            tracked[idx].candidateHits += 1
+        } else {
+            tracked[idx].candidate = text
+            tracked[idx].candidateHits = 1
+        }
+
+        guard tracked[idx].candidateHits >= Self.textCommitHits else { return }
+
+        // 連續看到同一個新原文 → 採信
+        tracked[idx].text = text
+        tracked[idx].candidate = nil
+        tracked[idx].candidateHits = 0
+        if let cached = cache.value(for: OCRTextQuality.cacheKey(text)) {
+            // 快取命中，直接換成對應的新譯文
+            tracked[idx].translated = cached
+            tracked[idx].translatedFor = text
+        }
+        // 沒命中就**保留舊譯文顯示**，只是 translatedFor 已不等於 text，
+        // 下一步 process() 會把它排進重譯佇列。畫面因此不會閃成空白／虛線框。
+    }
+
+    func emit(now: Date) {
+        let regions = tracked.map { t in
+            RecognizedTextRegion(
+                id: t.id,
+                originalText: t.text,
+                translatedText: t.translated,
+                normalizedRect: t.rect,
+                confidence: t.confidence,
+                recognizedAt: t.bornAt,
+                showsPendingIndicator: t.translated == nil
+                    && now.timeIntervalSince(t.bornAt) > Self.pendingIndicatorDelay
+            )
+        }
+        continuation.yield(regions)
+    }
+
+    /// 找出與這個 box 最相符的既有區塊
+    func bestMatchIndex(for box: CGRect, excluding used: Set<Int>) -> Int? {
+        var best: (index: Int, score: CGFloat)?
+        for i in tracked.indices where !used.contains(i) {
+            let score = Self.iou(tracked[i].rect, box)
+            guard score > Self.matchIoU else { continue }
+            if best == nil || score > best!.score { best = (i, score) }
+        }
+        return best?.index
     }
 
     /// 加逾時的翻譯。逾時後留下的懸空 continuation 會被 bridge 的下一筆請求
@@ -336,22 +437,14 @@ private extension LiveCameraVisionService {
         }
     }
 
-    /// IoU > 0.7 視為同一個區塊，位置用 EMA 平滑（0.7 舊 + 0.3 新）避免抖動。
-    func smoothedRect(for newBox: CGRect) -> CGRect {
-        guard let match = previousRegions
-            .map({ ($0, Self.iou($0.normalizedRect, newBox)) })
-            .filter({ $0.1 > 0.7 })
-            .max(by: { $0.1 < $1.1 })?.0
-        else {
-            return newBox
-        }
-        let old = match.normalizedRect
-        let a: CGFloat = 0.7
+    /// 位置 EMA 平滑，避免手震讓黑框抖動
+    static func smoothed(old: CGRect, new: CGRect) -> CGRect {
+        let a = positionSmoothing
         return CGRect(
-            x: old.origin.x * a + newBox.origin.x * (1 - a),
-            y: old.origin.y * a + newBox.origin.y * (1 - a),
-            width: old.width * a + newBox.width * (1 - a),
-            height: old.height * a + newBox.height * (1 - a)
+            x: old.origin.x * a + new.origin.x * (1 - a),
+            y: old.origin.y * a + new.origin.y * (1 - a),
+            width: old.width * a + new.width * (1 - a),
+            height: old.height * a + new.height * (1 - a)
         )
     }
 
@@ -363,6 +456,35 @@ private extension LiveCameraVisionService {
         guard unionArea > 0 else { return 0 }
         return interArea / unionArea
     }
+}
+
+// MARK: - Tracked region
+
+/// v1.4.0 hotfix4：跨影格追蹤同一塊文字。
+///
+/// 沒有這層，每一幀都是全新的 `RecognizedTextRegion`（全新 UUID），
+/// SwiftUI 的 `ForEach` 會把所有疊層整批拆掉重建 —— 位置跳、內容換、無法動畫。
+/// 加上 OCR 本身每幀都會抖一點字，畫面就變成 QA 影片裡那樣完全無法閱讀。
+private struct TrackedRegion {
+    /// 穩定 id：跨影格不變，SwiftUI 才能認出是同一個 view 並做動畫
+    let id: UUID
+    let bornAt: Date
+    /// 目前「已採信」並顯示中的原文
+    var text: String
+    /// 目前畫面上顯示的譯文（重新翻譯期間可能暫時是舊的，但不會閃成空白）
+    var translated: String?
+    /// `translated` 是針對哪一段原文算出來的。
+    /// 用它判斷「需不需要重譯」：`translatedFor != text` 就代表原文換了、譯文過時。
+    var translatedFor: String?
+    var rect: CGRect
+    var confidence: Float
+    /// 觀察中的新原文（還沒連續出現足夠次數）
+    var candidate: String?
+    var candidateHits: Int
+    var lastSeen: Date
+
+    /// 譯文是否已對應到目前的原文
+    var isTranslationCurrent: Bool { translatedFor == text }
 }
 
 /// session 是否已設定過。只在 sessionQueue 上動，但用 lock 保守處理。
