@@ -275,18 +275,30 @@ private extension LiveCameraVisionService {
     static var translateTimeoutSeconds: UInt64 { 6 }
 
     /// 認定「同一塊文字」的 IoU 門檻。比舊的 0.7 寬鬆，因為手持鏡頭會晃。
-    static var matchIoU: CGFloat { 0.35 }
+    static var matchIoU: CGFloat { 0.3 }
     /// 新的原文要連續被辨識到幾次才換掉畫面上的舊文字。
     /// 這是止住「文字快速亂跳」的關鍵 —— OCR 每幀都會抖一點，
     /// 不設這道門檻的話畫面就會跟著每幀重寫一次。
-    static var textCommitHits: Int { 2 }
+    static var textCommitHits: Int { 3 }
+    /// v1.4.0 hotfix5：換過文字之後，**至少**要維持這麼久才允許再換。
+    ///
+    /// 對著小字／傾斜／模糊的目標，OCR 每次讀出來都可能不一樣，
+    /// 光靠「連續 N 次」擋不住（讀 A,A 換成 A，再讀 B,B 又換成 B）。
+    /// 這道冷卻時間保證畫面上的字不會每秒換好幾輪 —— 這是「絲滑」的關鍵。
+    static var minTextHoldSeconds: TimeInterval { 1.2 }
     /// 區塊消失後還保留多久。避免 Vision 漏掉一幀就整塊閃爍。
-    static var regionTTL: TimeInterval { 0.8 }
+    /// hotfix5：0.8 → 0.5，讓畫面換內容時殘影消得快一點。
+    static var regionTTL: TimeInterval { 0.5 }
+    /// v1.4.0 hotfix5：兩個區塊重疊超過這個比例，視為重複，只留一個。
+    /// 沒有這道 NMS，鏡頭一晃就會在同一行文字上疊出好幾個黑框（QA 影片的「互相交疊」）。
+    static var overlapSuppressionIoU: CGFloat { 0.25 }
+    /// 同時最多顯示幾個區塊。太多會讓畫面變成一片黑框。
+    static var maxDisplayedRegions: Int { 14 }
     /// 區塊出生後多久還沒譯文，才顯示等待中的虛線框。
     /// 太快顯示會讓畫面在「虛線框 → 譯文」之間閃爍。
     static var pendingIndicatorDelay: TimeInterval { 0.6 }
-    /// 位置 EMA 係數（保留多少舊位置）
-    static var positionSmoothing: CGFloat { 0.6 }
+    /// 位置 EMA 係數（保留多少舊位置）。hotfix5：0.6 → 0.7，再穩一點。
+    static var positionSmoothing: CGFloat { 0.7 }
 
     /// 追蹤 + 翻譯 + emit。翻譯序列化，進行中的話直接丟棄這一輪。
     func process(raw: [(String, CGRect, Float)]) async {
@@ -315,16 +327,25 @@ private extension LiveCameraVisionService {
                     confidence: confidence,
                     candidate: nil,
                     candidateHits: 0,
-                    lastSeen: now
+                    lastSeen: now,
+                    committedAt: now
                 ))
             }
         }
 
         // 2. 太久沒再被看到的區塊才移除（不是漏一幀就刪，那會閃爍）
         tracked.removeAll { now.timeIntervalSince($0.lastSeen) > Self.regionTTL }
+        // 3. 去掉互相重疊的重複框
+        suppressOverlaps()
+        // 4. 區塊太多就只留最近看到的，避免畫面變成一片黑框
+        if tracked.count > Self.maxDisplayedRegions {
+            tracked = Array(
+                tracked.sorted { $0.lastSeen > $1.lastSeen }.prefix(Self.maxDisplayedRegions)
+            )
+        }
         emit(now: now)
 
-        // 3. 逐一補譯文（譯文過時或從未翻過的），每翻好一筆就再 emit 一次
+        // 5. 逐一補譯文（譯文過時或從未翻過的），每翻好一筆就再 emit 一次
         let pendingIDs = tracked.filter { !$0.isTranslationCurrent }
             .prefix(Self.maxTranslationsPerPass)
             .map(\.id)
@@ -362,32 +383,68 @@ private extension LiveCameraVisionService {
         tracked[idx].lastSeen = now
         tracked[idx].confidence = confidence
 
-        if text == tracked[idx].text {
+        // v1.4.0 hotfix5：用正規化後的鍵比對「是不是同一句」。
+        // OCR 在連續影格常常只差一個標點或大小寫（`QA testing` / `QA testing.`），
+        // 用原字串比會把這種抖動當成「換了新句子」，畫面就跟著閃。
+        let key = OCRTextQuality.cacheKey(text)
+        if key == OCRTextQuality.cacheKey(tracked[idx].text) {
             tracked[idx].candidate = nil
             tracked[idx].candidateHits = 0
             return
         }
 
-        if text == tracked[idx].candidate {
+        if let candidate = tracked[idx].candidate, key == OCRTextQuality.cacheKey(candidate) {
             tracked[idx].candidateHits += 1
+            // 用最新一次的讀法（通常標點比較完整）
+            tracked[idx].candidate = text
         } else {
             tracked[idx].candidate = text
             tracked[idx].candidateHits = 1
         }
 
         guard tracked[idx].candidateHits >= Self.textCommitHits else { return }
+        // 冷卻時間內不換字，避免畫面每秒重寫好幾次
+        guard now.timeIntervalSince(tracked[idx].committedAt) >= Self.minTextHoldSeconds else { return }
 
-        // 連續看到同一個新原文 → 採信
+        // 連續看到同一個新原文、且已過冷卻 → 採信
         tracked[idx].text = text
         tracked[idx].candidate = nil
         tracked[idx].candidateHits = 0
-        if let cached = cache.value(for: OCRTextQuality.cacheKey(text)) {
+        tracked[idx].committedAt = now
+        if let cached = cache.value(for: key) {
             // 快取命中，直接換成對應的新譯文
             tracked[idx].translated = cached
             tracked[idx].translatedFor = text
         }
         // 沒命中就**保留舊譯文顯示**，只是 translatedFor 已不等於 text，
         // 下一步 process() 會把它排進重譯佇列。畫面因此不會閃成空白／虛線框。
+    }
+
+    /// v1.4.0 hotfix5：重疊抑制（NMS）。
+    ///
+    /// 鏡頭晃動時，同一行文字的新 observation 可能與既有區塊 IoU 不夠高而另開一個區塊，
+    /// 於是同一行上疊了兩三個黑框 —— 這是 QA 影片裡「互相交疊」的直接成因。
+    ///
+    /// 保留策略：**先來的優先**（bornAt 較早），維持畫面穩定；
+    /// 後生成的重複框直接丟掉。
+    func suppressOverlaps() {
+        guard tracked.count > 1 else { return }
+        let ordered = tracked.enumerated().sorted { lhs, rhs in
+            lhs.element.bornAt < rhs.element.bornAt
+        }
+        var keptRects: [CGRect] = []
+        var keptIndices = Set<Int>()
+        for (index, region) in ordered {
+            let clashes = keptRects.contains { Self.iou($0, region.rect) > Self.overlapSuppressionIoU }
+            if !clashes {
+                keptRects.append(region.rect)
+                keptIndices.insert(index)
+            }
+        }
+        guard keptIndices.count < tracked.count else { return }
+        tracked = tracked.enumerated()
+            .filter { keptIndices.contains($0.offset) }
+            .map(\.element)
     }
 
     func emit(now: Date) {
@@ -482,6 +539,9 @@ private struct TrackedRegion {
     var candidate: String?
     var candidateHits: Int
     var lastSeen: Date
+    /// 顯示中的原文**最後一次被換掉**的時間。用來做換字冷卻，
+    /// 避免對著模糊小字時畫面每秒重寫好幾輪。
+    var committedAt: Date
 
     /// 譯文是否已對應到目前的原文
     var isTranslationCurrent: Bool { translatedFor == text }
