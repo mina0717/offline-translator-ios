@@ -215,18 +215,18 @@
 "下載「繁中 ↔ 全部 13 國其他語言」共 26 個方向（約 2GB）。下載完成後 Taiwan 主要 use case 全部可離線。其他配對（如英↔日、日↔韓）會在切換到時自動背景下載。" = "下載「繁中 ↔ 全部 13 國其他語言」共 26 個方向（約 2GB）。下載完成後 Taiwan 主要 use case 全部可離線。其他配對（如英↔日、日↔韓）會在切換到時自動背景下載。";
 "下載 26 個繁中配對" = "下載 26 個繁中配對";
 
-// MARK: - v1.4.0 即時鏡頭翻譯（Live Camera）
-"即時翻譯" = "即時翻譯";
-"對準文字即譯" = "對準文字即譯";
+// MARK: - v1.4.0 相機翻譯（Live Camera：即時疊字 + 快門單張）
+"相機翻譯" = "相機翻譯";
+"即時疊字或拍照" = "即時疊字或拍照";
 "live.status.starting" = "翻譯引擎啟動中…";
 "live.hint.aim" = "把鏡頭對準文字試試";
 "live.hint.paused" = "已暫停";
 "live.hint.thermal" = "裝置偏熱，已自動降低辨識頻率";
 "live.action.pause" = "暫停辨識";
 "live.action.resume" = "繼續辨識";
-"live.action.close" = "關閉即時翻譯";
+"live.action.close" = "關閉相機翻譯";
 "live.permission.title" = "需要相機權限";
-"live.permission.body" = "即時翻譯需要使用相機辨識畫面中的文字。相機影像 100% 在本機處理，不會上傳。";
+"live.permission.body" = "相機翻譯需要使用相機辨識畫面中的文字。相機影像 100% 在本機處理，不會上傳。";
 "live.permission.open_settings" = "打開設定";
 "live.error.camera_unavailable" = "找不到可用的相機。";
 "live.error.permission_denied" = "尚未允許使用相機，請到設定開啟。";

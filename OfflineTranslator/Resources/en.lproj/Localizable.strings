@@ -215,18 +215,18 @@
 "下載「繁中 ↔ 全部 13 國其他語言」共 26 個方向（約 2GB）。下載完成後 Taiwan 主要 use case 全部可離線。其他配對（如英↔日、日↔韓）會在切換到時自動背景下載。" = "Download all 26 directions where 繁中 is one side (~2GB total). After this, the main Taiwan use cases work fully offline. Other pairs (en↔ja, ja↔ko, etc.) auto-download in the background when you switch to them.";
 "下載 26 個繁中配對" = "Download 26 pairs";
 
-// MARK: - v1.4.0 Live Camera Translation
-"即時翻譯" = "Live";
-"對準文字即譯" = "Point and translate";
+// MARK: - v1.4.0 Camera Translation (live overlay + shutter)
+"相機翻譯" = "Camera";
+"即時疊字或拍照" = "Live overlay or capture";
 "live.status.starting" = "Starting translation engine...";
 "live.hint.aim" = "Point the camera at some text";
 "live.hint.paused" = "Paused";
 "live.hint.thermal" = "Device is warm - recognition rate reduced";
 "live.action.pause" = "Pause recognition";
 "live.action.resume" = "Resume recognition";
-"live.action.close" = "Close live translation";
+"live.action.close" = "Close camera translation";
 "live.permission.title" = "Camera access needed";
-"live.permission.body" = "Live translation needs the camera to recognize text on screen. Camera frames are processed 100% on-device and never uploaded.";
+"live.permission.body" = "Camera translation needs the camera to recognize text on screen. Camera frames are processed 100% on-device and never uploaded.";
 "live.permission.open_settings" = "Open Settings";
 "live.error.camera_unavailable" = "No usable camera found.";
 "live.error.permission_denied" = "Camera access is not granted. Please enable it in Settings.";
