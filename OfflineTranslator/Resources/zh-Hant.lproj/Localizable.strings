@@ -245,3 +245,8 @@
 /* v1.4.0 hotfix3 */
 "live.hint.pack_not_ready" = "已偵測到文字，語言包尚未就緒";
 "live.error.translate_timeout" = "翻譯逾時";
+
+/* v1.4.0 hotfix6：快門 / 單張拍照翻譯 */
+"live.action.shutter" = "拍攝翻譯";
+"live.action.back_to_live" = "返回即時預覽";
+"live.status.capturing" = "辨識中，請稍候…";

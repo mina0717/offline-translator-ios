@@ -245,3 +245,8 @@
 /* v1.4.0 hotfix3 */
 "live.hint.pack_not_ready" = "Text detected, language pack not ready yet";
 "live.error.translate_timeout" = "Translation timed out";
+
+/* v1.4.0 hotfix6: shutter / single-shot capture */
+"live.action.shutter" = "Capture and translate";
+"live.action.back_to_live" = "Back to live";
+"live.status.capturing" = "Scanning, please wait…";

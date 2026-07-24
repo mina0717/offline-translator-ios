@@ -27,6 +27,10 @@ final class LiveCameraTranslationViewModel: ObservableObject {
     @Published private(set) var phase: Phase = .idle
     @Published private(set) var regions: [RecognizedTextRegion] = []
     @Published private(set) var isPaused = false
+    /// v1.4.0 hotfix6：按下快門後凍結的單張結果。非 nil = 目前在「單張拍照翻譯」模式。
+    @Published private(set) var still: StillCapture?
+    /// 快門處理中（高品質辨識 + 整批翻譯需要一點時間）
+    @Published private(set) var isCapturing = false
     @Published private(set) var isThermallyThrottled = false
     /// 進場後一段時間都沒辨識到文字 → 顯示「對準文字試試」
     @Published private(set) var showsAimHint = false
@@ -46,6 +50,8 @@ final class LiveCameraTranslationViewModel: ObservableObject {
     private var streamTask: Task<Void, Never>?
     private var thermalObserver: NSObjectProtocol?
     private var hintTask: Task<Void, Never>?
+    /// v1.4.0 hotfix6：快門處理中的 Task
+    private var captureTask: Task<Void, Never>?
     /// v1.4.0 hotfix2：整段啟動流程自己持有的 Task。
     /// **不能**靠 SwiftUI 的 `.task { }` 驅動 —— 那個會隨 view 更新被取消，
     /// 一旦在 await 權限請求時被砍掉，流程就永遠停在半路（這正是 build #53 的症狀）。
@@ -164,6 +170,9 @@ final class LiveCameraTranslationViewModel: ObservableObject {
         streamTask?.cancel(); streamTask = nil
         hintTask?.cancel(); hintTask = nil
         startWatchdog?.cancel(); startWatchdog = nil
+        captureTask?.cancel(); captureTask = nil
+        still = nil
+        isCapturing = false
         if let obs = thermalObserver {
             NotificationCenter.default.removeObserver(obs)
             thermalObserver = nil
@@ -180,6 +189,42 @@ final class LiveCameraTranslationViewModel: ObservableObject {
         isPaused.toggle()
         service.setPaused(isPaused)
         if !isPaused { scheduleAimHint() }
+    }
+
+    /// v1.4.0 hotfix6：按下快門 → 凍結畫面做高品質單張翻譯。
+    ///
+    /// 即時模式為了跟上畫面必須妥協精度；凍結之後沒有時間壓力，
+    /// 可以讀更小的字、把整批文字全部翻完，而且畫面不再變動 —— 這才讀得下去。
+    func capture() {
+        guard phase == .running, !isCapturing, still == nil else { return }
+        isCapturing = true
+        captureTask?.cancel()
+        captureTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.isCapturing = false }
+            do {
+                let result = try await self.service.captureStill()
+                guard !Task.isCancelled else { return }
+                // 凍結期間停掉即時 OCR，省電也避免背景繼續更新
+                self.service.setPaused(true)
+                self.showsAimHint = false
+                self.hintTask?.cancel()
+                self.still = result
+            } catch {
+                #if DEBUG
+                print("ℹ️ live camera capture failed: \(error)")
+                #endif
+            }
+        }
+    }
+
+    /// 從單張模式回到即時預覽
+    func resumeLive() {
+        captureTask?.cancel(); captureTask = nil
+        still = nil
+        isPaused = false
+        service.setPaused(false)
+        scheduleAimHint()
     }
 
     func swapLanguages() {

@@ -57,13 +57,21 @@ struct LiveCameraTranslationView: View {
 
         var body: some View {
             ZStack {
-                // ── Layer 1：相機畫面
-                CameraPreviewLayer(session: vm.captureSession)
-                    .ignoresSafeArea()
+                // ── Layer 1：相機畫面（凍結時換成拍下來的靜止畫面）
+                if let still = vm.still {
+                    Image(uiImage: still.image)
+                        .resizable()
+                        .scaledToFill()
+                        .ignoresSafeArea()
+                } else {
+                    CameraPreviewLayer(session: vm.captureSession)
+                        .ignoresSafeArea()
+                }
 
                 // ── Layer 2：譯文疊層
+                // 凍結畫面沿用相同的方向與 720p 長寬比，所以座標換算完全共用。
                 GeometryReader { geo in
-                    ForEach(vm.regions) { region in
+                    ForEach(vm.still?.regions ?? vm.regions) { region in
                         TextOverlayView(
                             region: region,
                             viewSize: geo.size,
@@ -79,7 +87,7 @@ struct LiveCameraTranslationView: View {
                 if vm.phase == .running {
                     VStack(spacing: 0) {
                         Spacer()
-                        statusBanner
+                        if vm.still == nil { statusBanner }
                         controlsBar
                     }
                 }
@@ -92,7 +100,27 @@ struct LiveCameraTranslationView: View {
                     topBar
                     Spacer()
                 }
+
+                // ── Layer 6：快門處理中
+                if vm.isCapturing {
+                    ZStack {
+                        Color.black.opacity(0.35).ignoresSafeArea()
+                        VStack(spacing: Theme.Spacing.sm) {
+                            ProgressView().tint(.white)
+                            Text("live.status.capturing")
+                                .font(Theme.Font.caption)
+                                .foregroundStyle(.white)
+                        }
+                        .padding(Theme.Spacing.lg)
+                        .background(
+                            RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
+                                .fill(.black.opacity(0.7))
+                        )
+                    }
+                    .transition(.opacity)
+                }
             }
+            .animation(.easeInOut(duration: 0.2), value: vm.still == nil)
         }
 
         // MARK: Top bar
@@ -151,7 +179,33 @@ struct LiveCameraTranslationView: View {
 
         // MARK: Controls
 
+        /// v1.4.0 hotfix6：底部控制區。
+        /// 即時模式 = 語言列 + 快門；單張模式 = 只留「返回即時預覽」。
+        @ViewBuilder
         private var controlsBar: some View {
+            if vm.still == nil {
+                VStack(spacing: Theme.Spacing.md) {
+                    languageRow
+                    shutterButton
+                }
+                .padding(.bottom, Theme.Spacing.lg)
+            } else {
+                Button { vm.resumeLive() } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.counterclockwise")
+                        Text("live.action.back_to_live")
+                    }
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .padding(.vertical, Theme.Spacing.sm)
+                    .background(Capsule().fill(.white))
+                }
+                .padding(.bottom, Theme.Spacing.lg)
+            }
+        }
+
+        private var languageRow: some View {
             HStack(spacing: Theme.Spacing.sm) {
                 ConversationLanguageMenu(
                     current: vm.sourceLanguage,
@@ -177,17 +231,6 @@ struct LiveCameraTranslationView: View {
                     disabled: false,
                     onSelect: { vm.setTarget($0) }
                 )
-
-                Button { vm.togglePause() } label: {
-                    Image(systemName: vm.isPaused ? "play.fill" : "pause.fill")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(9)
-                        .background(Circle().fill(.white.opacity(0.18)))
-                }
-                .accessibilityLabel(Text(vm.isPaused
-                                         ? LocalizedStringKey("live.action.resume")
-                                         : LocalizedStringKey("live.action.pause")))
             }
             .padding(.horizontal, Theme.Spacing.md)
             .padding(.vertical, Theme.Spacing.sm)
@@ -196,7 +239,23 @@ struct LiveCameraTranslationView: View {
                     .fill(.black.opacity(0.5))
             )
             .padding(.horizontal, Theme.Spacing.md)
-            .padding(.bottom, Theme.Spacing.lg)
+        }
+
+        /// 相機式快門鍵：外圈白環 + 內圈實心，跟系統相機一致的視覺語彙。
+        private var shutterButton: some View {
+            Button { vm.capture() } label: {
+                ZStack {
+                    Circle()
+                        .strokeBorder(.white, lineWidth: 4)
+                        .frame(width: 70, height: 70)
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 56, height: 56)
+                }
+            }
+            .disabled(vm.isCapturing)
+            .opacity(vm.isCapturing ? 0.5 : 1)
+            .accessibilityLabel(Text("live.action.shutter"))
         }
 
         // MARK: Phase overlays
