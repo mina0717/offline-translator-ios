@@ -30,7 +30,14 @@ final class LiveCameraVisionService: NSObject, LiveCameraTranslationService {
 
     nonisolated var captureSession: AVCaptureSession? { session }
 
-    let regionStream: AsyncStream<[RecognizedTextRegion]>
+    /// v1.4.0 hotfix7：**每次 `start()` 都重建**這條 stream。
+    ///
+    /// `AsyncStream` 是單消費者：第一個 ViewModel `for await` 消費掉它之後，
+    /// 這個 service 是共享單例（見 `AppDependencies`），下次進場的新 ViewModel
+    /// 對同一條已結束的 stream 再 `for await`，一個 element 都收不到 ——
+    /// 相機正常、OCR 正常，但譯文永遠出不來。這正是「跳回主畫面再進來就翻不出來」的成因。
+    var regionStream: AsyncStream<[RecognizedTextRegion]> { activeStream }
+    private var activeStream: AsyncStream<[RecognizedTextRegion]>!
 
     // MARK: - Capture
 
@@ -70,7 +77,7 @@ final class LiveCameraVisionService: NSObject, LiveCameraTranslationService {
     /// 序列閘門：翻譯進行中時丟棄新影格
     private var isTranslating = false
 
-    private let continuation: AsyncStream<[RecognizedTextRegion]>.Continuation
+    private var continuation: AsyncStream<[RecognizedTextRegion]>.Continuation?
 
     // MARK: - Init
 
@@ -80,21 +87,35 @@ final class LiveCameraVisionService: NSObject, LiveCameraTranslationService {
         self.currentPair = initialPair
 
         var cont: AsyncStream<[RecognizedTextRegion]>.Continuation!
-        self.regionStream = AsyncStream { cont = $0 }
+        self.activeStream = AsyncStream { cont = $0 }
         self.continuation = cont
 
         super.init()
         shared.setRecognitionLanguages(Self.recognitionLanguages(for: initialPair.source))
     }
 
+    /// 重建 region stream + 清掉上一輪的追蹤狀態。每次 `start()` 呼叫。
+    private func rearmStream() {
+        continuation?.finish()
+        var cont: AsyncStream<[RecognizedTextRegion]>.Continuation!
+        activeStream = AsyncStream { cont = $0 }
+        continuation = cont
+        tracked = []
+        isTranslating = false
+    }
+
     // MARK: - LiveCameraTranslationService
 
     func start() async throws {
-        guard !session.isRunning else { return }
+        // hotfix7：每次進場都重建 stream（單消費者，共享單例，不重建就收不到 region）。
+        // 放在最前面、且不被 session.isRunning 的 guard 擋掉。
+        rearmStream()
 
         // v1.4.0 hotfix：設定 + startRunning **全部**在 sessionQueue 上做。
         // 之前 configureSession 跑在 MainActor，`commitConfiguration()` 會把主執行緒卡住，
         // 畫面就凍在「翻譯引擎啟動中」。
+        // sessionQueue 是序列的：上一輪 onDisappear 的 stopRunning() 會排在這之前，
+        // 這裡的 `if !session.isRunning` 再把它重新開起來，所以快速 re-entry 也安全。
         try await withCheckedThrowingContinuation { (c: CheckedContinuation<Void, Error>) in
             sessionQueue.async { [self] in
                 do {
@@ -172,7 +193,7 @@ final class LiveCameraVisionService: NSObject, LiveCameraTranslationService {
         }
         stillBox.cancel()
         tracked = []
-        continuation.yield([])
+        continuation?.yield([])
     }
 
     func setLanguagePair(_ pair: LanguagePair) async {
@@ -182,7 +203,7 @@ final class LiveCameraVisionService: NSObject, LiveCameraTranslationService {
         tracked = []
         throttler.reset()
         shared.setRecognitionLanguages(Self.recognitionLanguages(for: pair.source))
-        continuation.yield([])
+        continuation?.yield([])
 
         let target = pair
         Task.detached { [mtService] in
@@ -561,7 +582,7 @@ private extension LiveCameraVisionService {
                     && now.timeIntervalSince(t.bornAt) > Self.pendingIndicatorDelay
             )
         }
-        continuation.yield(regions)
+        continuation?.yield(regions)
     }
 
     /// 找出與這個 box 最相符的既有區塊
