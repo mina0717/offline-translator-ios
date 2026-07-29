@@ -398,6 +398,18 @@ private extension LiveCameraVisionService {
 
     /// 認定「同一塊文字」的 IoU 門檻。比舊的 0.7 寬鬆，因為手持鏡頭會晃。
     static var matchIoU: CGFloat { 0.3 }
+    /// v1.4.0 hotfix8：幾何比對失敗時的**文字救援比對**距離上限（normalized 座標）。
+    ///
+    /// 手震或 Vision 重新切行會讓 IoU 掉到門檻以下，原本就會「另開一個新區塊」——
+    /// 新區塊 = 新 UUID = SwiftUI 整個 view 重建 = 畫面跳，
+    /// 而且新區塊完全繞過了 textCommitHits / minTextHoldSeconds 這些防抖機制。
+    /// 所以只要文字一樣、位置沒差太多，就認定是同一塊，沿用原本的 id。
+    static var textMatchMaxDistance: CGFloat { 0.18 }
+    /// v1.4.0 hotfix8：新區塊要被看到幾次才准上畫面。
+    /// 只出現一兩幀的雜訊區塊因此永遠不會閃到使用者眼前。
+    static var minHitsToDisplay: Int { 2 }
+    /// 記憶體裡最多保留幾個追蹤區塊（顯示上限另計）。
+    static var maxTrackedRegions: Int { 40 }
     /// 新的原文要連續被辨識到幾次才換掉畫面上的舊文字。
     /// 這是止住「文字快速亂跳」的關鍵 —— OCR 每幀都會抖一點，
     /// 不設這道門檻的話畫面就會跟著每幀重寫一次。
@@ -409,8 +421,9 @@ private extension LiveCameraVisionService {
     /// 這道冷卻時間保證畫面上的字不會每秒換好幾輪 —— 這是「絲滑」的關鍵。
     static var minTextHoldSeconds: TimeInterval { 1.2 }
     /// 區塊消失後還保留多久。避免 Vision 漏掉一幀就整塊閃爍。
-    /// hotfix5：0.8 → 0.5，讓畫面換內容時殘影消得快一點。
-    static var regionTTL: TimeInterval { 0.5 }
+    /// hotfix8：0.5 → 1.5。實際辨識速率約 1～3fps，0.5 秒等於只容忍漏掉一幀；
+    /// Vision 一漏辨識，區塊就死掉、下一幀又以新 id 重生 —— 這正是畫面在跳的主因之一。
+    static var regionTTL: TimeInterval { 1.5 }
     /// v1.4.0 hotfix5：兩個區塊重疊超過這個比例，視為重複，只留一個。
     /// 沒有這道 NMS，鏡頭一晃就會在同一行文字上疊出好幾個黑框（QA 影片的「互相交疊」）。
     static var overlapSuppressionIoU: CGFloat { 0.25 }
@@ -434,7 +447,7 @@ private extension LiveCameraVisionService {
         // 1. 把這一幀的辨識結果併進 tracked（比對既有區塊，而不是全部重建）
         var matchedIndices = Set<Int>()
         for (text, box, confidence) in raw {
-            if let idx = bestMatchIndex(for: box, excluding: matchedIndices) {
+            if let idx = bestMatchIndex(for: box, text: text, excluding: matchedIndices) {
                 matchedIndices.insert(idx)
                 merge(text: text, box: box, confidence: confidence, into: idx, now: now)
             } else {
@@ -449,6 +462,7 @@ private extension LiveCameraVisionService {
                     confidence: confidence,
                     candidate: nil,
                     candidateHits: 0,
+                    hits: 1,
                     lastSeen: now,
                     committedAt: now
                 ))
@@ -459,10 +473,12 @@ private extension LiveCameraVisionService {
         tracked.removeAll { now.timeIntervalSince($0.lastSeen) > Self.regionTTL }
         // 3. 去掉互相重疊的重複框
         suppressOverlaps()
-        // 4. 區塊太多就只留最近看到的，避免畫面變成一片黑框
-        if tracked.count > Self.maxDisplayedRegions {
+        // 4. 記憶體上限（顯示上限在 emit 時才套用）。
+        //    hotfix8：這裡**不能**用顯示上限去砍 tracked ——
+        //    砍掉等於毀掉那塊的 id 與譯文，下次又以新 id 重生，畫面就跳。
+        if tracked.count > Self.maxTrackedRegions {
             tracked = Array(
-                tracked.sorted { $0.lastSeen > $1.lastSeen }.prefix(Self.maxDisplayedRegions)
+                tracked.sorted { $0.lastSeen > $1.lastSeen }.prefix(Self.maxTrackedRegions)
             )
         }
         emit(now: now)
@@ -504,6 +520,7 @@ private extension LiveCameraVisionService {
         tracked[idx].rect = Self.smoothed(old: tracked[idx].rect, new: box)
         tracked[idx].lastSeen = now
         tracked[idx].confidence = confidence
+        tracked[idx].hits += 1
 
         // v1.4.0 hotfix5：用正規化後的鍵比對「是不是同一句」。
         // OCR 在連續影格常常只差一個標點或大小寫（`QA testing` / `QA testing.`），
@@ -547,12 +564,16 @@ private extension LiveCameraVisionService {
     /// 鏡頭晃動時，同一行文字的新 observation 可能與既有區塊 IoU 不夠高而另開一個區塊，
     /// 於是同一行上疊了兩三個黑框 —— 這是 QA 影片裡「互相交疊」的直接成因。
     ///
-    /// 保留策略：**先來的優先**（bornAt 較早），維持畫面穩定；
-    /// 後生成的重複框直接丟掉。
+    /// 保留策略：**已經穩定顯示中的優先**，其次才看誰先出現。
+    /// hotfix8：原本只看 bornAt，會讓「剛冒出來的雜訊框」有機會擠掉
+    /// 已經在畫面上待很久的框（只要它更早生成），畫面因此會抽動。
     func suppressOverlaps() {
         guard tracked.count > 1 else { return }
         let ordered = tracked.enumerated().sorted { lhs, rhs in
-            lhs.element.bornAt < rhs.element.bornAt
+            let lStable = lhs.element.hits >= Self.minHitsToDisplay
+            let rStable = rhs.element.hits >= Self.minHitsToDisplay
+            if lStable != rStable { return lStable }
+            return lhs.element.bornAt < rhs.element.bornAt
         }
         var keptRects: [CGRect] = []
         var keptIndices = Set<Int>()
@@ -570,30 +591,61 @@ private extension LiveCameraVisionService {
     }
 
     func emit(now: Date) {
-        let regions = tracked.map { t in
-            RecognizedTextRegion(
-                id: t.id,
-                originalText: t.text,
-                translatedText: t.translated,
-                normalizedRect: t.rect,
-                confidence: t.confidence,
-                recognizedAt: t.bornAt,
-                showsPendingIndicator: t.translated == nil
-                    && now.timeIntervalSince(t.bornAt) > Self.pendingIndicatorDelay
-            )
-        }
-        continuation?.yield(regions)
+        // hotfix8：只有「被看到夠多次」的區塊才上畫面。
+        // 只出現一兩幀的雜訊區塊因此永遠不會閃到使用者眼前 —— 這是止跳的關鍵之一。
+        // 顯示上限也在這裡才套用（不動 tracked 本身，才不會毀掉 id 與譯文）。
+        let regions = tracked
+            .filter { $0.hits >= Self.minHitsToDisplay }
+            .sorted { $0.lastSeen > $1.lastSeen }
+            .prefix(Self.maxDisplayedRegions)
+            .map { t in
+                RecognizedTextRegion(
+                    id: t.id,
+                    originalText: t.text,
+                    translatedText: t.translated,
+                    normalizedRect: t.rect,
+                    confidence: t.confidence,
+                    recognizedAt: t.bornAt,
+                    showsPendingIndicator: t.translated == nil
+                        && now.timeIntervalSince(t.bornAt) > Self.pendingIndicatorDelay
+                )
+            }
+        continuation?.yield(Array(regions))
     }
 
-    /// 找出與這個 box 最相符的既有區塊
-    func bestMatchIndex(for box: CGRect, excluding used: Set<Int>) -> Int? {
-        var best: (index: Int, score: CGFloat)?
+    /// 找出與這個 observation 最相符的既有區塊。
+    ///
+    /// 兩段式：
+    /// 1. **幾何**：IoU 超過門檻的取最高分
+    /// 2. **文字救援**：幾何失敗時，只要正規化後的文字一樣、而且中心點沒跑太遠，
+    ///    就認定是同一塊。手震與 Vision 重新切行都會讓 IoU 掉下來，
+    ///    沒有這段就會不斷「殺掉舊區塊、生出新 id」→ 畫面跳。
+    func bestMatchIndex(for box: CGRect, text: String, excluding used: Set<Int>) -> Int? {
+        var bestGeometry: (index: Int, score: CGFloat)?
         for i in tracked.indices where !used.contains(i) {
             let score = Self.iou(tracked[i].rect, box)
             guard score > Self.matchIoU else { continue }
-            if best == nil || score > best!.score { best = (i, score) }
+            if bestGeometry == nil || score > bestGeometry!.score { bestGeometry = (i, score) }
         }
-        return best?.index
+        if let hit = bestGeometry { return hit.index }
+
+        let key = OCRTextQuality.cacheKey(text)
+        var bestText: (index: Int, distance: CGFloat)?
+        for i in tracked.indices where !used.contains(i) {
+            let sameAsCommitted = OCRTextQuality.cacheKey(tracked[i].text) == key
+            let sameAsCandidate = tracked[i].candidate.map { OCRTextQuality.cacheKey($0) == key } ?? false
+            guard sameAsCommitted || sameAsCandidate else { continue }
+            let distance = Self.centerDistance(tracked[i].rect, box)
+            guard distance < Self.textMatchMaxDistance else { continue }
+            if bestText == nil || distance < bestText!.distance { bestText = (i, distance) }
+        }
+        return bestText?.index
+    }
+
+    static func centerDistance(_ a: CGRect, _ b: CGRect) -> CGFloat {
+        let dx = a.midX - b.midX
+        let dy = a.midY - b.midY
+        return (dx * dx + dy * dy).squareRoot()
     }
 
     /// 加逾時的翻譯。逾時後留下的懸空 continuation 會被 bridge 的下一筆請求
@@ -660,6 +712,8 @@ private struct TrackedRegion {
     /// 觀察中的新原文（還沒連續出現足夠次數）
     var candidate: String?
     var candidateHits: Int
+    /// 這一塊總共被辨識到幾次。太少就不上畫面（擋掉只閃一兩幀的雜訊）。
+    var hits: Int
     var lastSeen: Date
     /// 顯示中的原文**最後一次被換掉**的時間。用來做換字冷卻，
     /// 避免對著模糊小字時畫面每秒重寫好幾輪。
