@@ -25,7 +25,10 @@ struct ConversationView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             if vmHolder.vm == nil {
-                vmHolder.vm = ConversationViewModel(useCase: deps.speechTranslateUseCase)
+                vmHolder.vm = ConversationViewModel(
+                    useCase: deps.speechTranslateUseCase,
+                    handsFreeService: deps.handsFreeASRService
+                )
             }
         }
     }
@@ -48,8 +51,35 @@ struct ConversationView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .rotationEffect(.degrees(180))
 
-                // ─────── 中間分隔線（含 swap 按鈕）───────
+                // ─────── 中間分隔線（含 swap 按鈕 + v1.5.0 免持控制）───────
                 middleDivider
+
+                // v1.5.0：該語言不支援離線辨識時的提示
+                if let hint = vm.handsFreeUnsupportedHint {
+                    HStack(alignment: .top, spacing: 6) {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .foregroundStyle(.orange)
+                        Text(hint)
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(Theme.Colors.textPrimary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Button {
+                            vm.handsFreeUnsupportedHint = nil
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(Theme.Colors.textSecondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(Theme.Spacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: Theme.Radius.md)
+                            .fill(Color.orange.opacity(0.12))
+                    )
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .padding(.bottom, Theme.Spacing.xs)
+                }
 
                 // ─────── 下半部：我自己（正常方向）───────
                 bottomHalf
@@ -139,41 +169,110 @@ struct ConversationView: View {
         // MARK: 中間分隔線
 
         private var middleDivider: some View {
-            HStack(spacing: Theme.Spacing.sm) {
-                Rectangle()
-                    .fill(Theme.Colors.textSecondary.opacity(0.25))
-                    .frame(height: 1)
+            VStack(spacing: Theme.Spacing.xs) {
+                HStack(spacing: Theme.Spacing.sm) {
+                    Rectangle()
+                        .fill(Theme.Colors.textSecondary.opacity(0.25))
+                        .frame(height: 1)
 
-                Button(action: vm.swapSides) {
-                    Image(systemName: "arrow.up.arrow.down")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Theme.Colors.accent)
-                        .padding(8)
-                        .background(Circle().fill(.ultraThinMaterial))
-                }
-                .buttonStyle(.plain)
-                .disabled(vm.isRecording || vm.isBusy)
-                .accessibilityLabel("交換上下語言")
-
-                if !vm.turns.isEmpty {
-                    Button(action: vm.clearAll) {
-                        Image(systemName: "trash")
+                    Button(action: vm.swapSides) {
+                        Image(systemName: "arrow.up.arrow.down")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(Theme.Colors.textSecondary)
+                            .foregroundStyle(Theme.Colors.accent)
                             .padding(8)
                             .background(Circle().fill(.ultraThinMaterial))
                     }
                     .buttonStyle(.plain)
-                    .disabled(vm.isRecording || vm.isBusy)
-                    .accessibilityLabel("清空對話")
+                    .disabled(vm.isRecording || vm.isBusy || vm.isHandsFree)
+                    .accessibilityLabel("交換上下語言")
+
+                    if !vm.turns.isEmpty {
+                        Button(action: vm.clearAll) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(Theme.Colors.textSecondary)
+                                .padding(8)
+                                .background(Circle().fill(.ultraThinMaterial))
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(vm.isRecording || vm.isBusy || vm.isHandsFree)
+                        .accessibilityLabel("清空對話")
+                    }
+
+                    Rectangle()
+                        .fill(Theme.Colors.textSecondary.opacity(0.25))
+                        .frame(height: 1)
                 }
 
-                Rectangle()
-                    .fill(Theme.Colors.textSecondary.opacity(0.25))
-                    .frame(height: 1)
+                // v1.5.0：免持模式控制列
+                handsFreeBar
             }
             .padding(.horizontal, Theme.Spacing.lg)
-            .frame(height: 36)
+        }
+
+        // MARK: v1.5.0 免持模式
+
+        @ViewBuilder
+        private var handsFreeBar: some View {
+            if vm.isHandsFree {
+                HStack(spacing: Theme.Spacing.sm) {
+                    // 聆聽指示：偵測到人聲時亮起並隨音量脈動
+                    Image(systemName: vm.isHearingSpeech ? "waveform.circle.fill" : "waveform.circle")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(vm.isHearingSpeech ? Theme.Colors.accent : Theme.Colors.textSecondary)
+                        .scaleEffect(vm.isHearingSpeech ? 1.12 : 1.0)
+                        .animation(.easeOut(duration: 0.18), value: vm.isHearingSpeech)
+
+                    Text(vm.isHearingSpeech
+                         ? LocalizedStringKey("handsfree.status.hearing")
+                         : LocalizedStringKey("handsfree.status.listening"))
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+
+                    Spacer(minLength: 0)
+
+                    Button(action: vm.stopHandsFree) {
+                        Text("handsfree.action.stop")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Capsule().fill(Color.red.opacity(0.85)))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, Theme.Spacing.sm)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.Radius.md)
+                        .fill(Theme.Colors.accent.opacity(0.10))
+                )
+            } else {
+                Menu {
+                    Button {
+                        vm.startHandsFree(speaker: vm.sideALanguage)
+                    } label: {
+                        Label(vm.sideALanguage.displayName, systemImage: "person.wave.2")
+                    }
+                    Button {
+                        vm.startHandsFree(speaker: vm.sideBLanguage)
+                    } label: {
+                        Label(vm.sideBLanguage.displayName, systemImage: "person.wave.2")
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "hand.raised.slash")
+                            .font(.system(size: 13, weight: .semibold))
+                        Text("handsfree.action.start")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundStyle(Theme.Colors.accent)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(.ultraThinMaterial))
+                }
+                .disabled(vm.isRecording || vm.isBusy)
+            }
         }
 
         // MARK: 錯誤條
@@ -428,8 +527,10 @@ private struct SideRecordButton: View {
     @State private var hapticFired: Bool = false
 
     private var isThisSideRecording: Bool { vm.recordingSide == language }
+    /// v1.5.0：免持模式進行中也要擋住按住說話 ——
+    /// 兩邊同時搶麥克風會讓 AVAudioEngine 的 tap 打架。
     private var isOtherSideBusy: Bool {
-        (vm.isRecording && !isThisSideRecording) || vm.isBusy
+        (vm.isRecording && !isThisSideRecording) || vm.isBusy || vm.isHandsFree
     }
 
     var body: some View {

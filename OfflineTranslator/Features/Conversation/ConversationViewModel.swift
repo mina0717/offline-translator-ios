@@ -52,6 +52,8 @@ final class ConversationViewModel: ObservableObject {
         case recording(speaker: Language)
         case translating(speaker: Language)
         case speaking
+        /// v1.5.0：免持模式持續聆聽中（手不用按著）
+        case handsFreeListening(speaker: Language)
     }
 
     // MARK: - Published
@@ -73,13 +75,35 @@ final class ConversationViewModel: ObservableObject {
     /// 顯示給使用者看的錯誤
     @Published var errorMessage: String?
 
+    // MARK: - v1.5.0 免持模式
+
+    /// 免持模式是否開啟
+    @Published private(set) var isHandsFree = false
+    /// 目前音量（dBFS），給 UI 畫聆聽指示
+    @Published private(set) var micLevel: Float = -100
+    /// 是否正在偵測到人聲（UI 可以亮起來）
+    @Published private(set) var isHearingSpeech = false
+    /// 該語言不支援離線辨識時的提示
+    @Published var handsFreeUnsupportedHint: String?
+
     // MARK: - Dependencies
 
     private let useCase: SpeechTranslateUseCase
+    private let handsFreeService: HandsFreeASRService
     private var recognitionTask: Task<Void, Never>?
+    private var handsFreeTask: Task<Void, Never>?
 
-    init(useCase: SpeechTranslateUseCase) {
+    /// v1.5.0：待翻譯佇列。
+    ///
+    /// **必須序列翻譯** —— `AppleTranslationBridge` 一次只持有一個 continuation，
+    /// 併發呼叫會讓前一個請求收到 CancellationError（相機翻譯踩過同一個坑）。
+    /// 免持模式下使用者可能連講好幾句，一定要排隊而不是同時發。
+    private var pendingTranslationIDs: [UUID] = []
+    private var isDrainingQueue = false
+
+    init(useCase: SpeechTranslateUseCase, handsFreeService: HandsFreeASRService) {
         self.useCase = useCase
+        self.handsFreeService = handsFreeService
         preheatBothDirections()
     }
 
@@ -99,6 +123,7 @@ final class ConversationViewModel: ObservableObject {
     /// v1.2.2：避免 task / 麥克風在 ViewModel 已釋放後仍在跑
     deinit {
         recognitionTask?.cancel()
+        handsFreeTask?.cancel()
     }
 
     // MARK: - Derived
@@ -259,6 +284,130 @@ final class ConversationViewModel: ObservableObject {
 
         // v1.2.9：取消自動朗讀（使用者反饋會嚇到）。改由使用者點氣泡上的喇叭 icon 觸發 replay()。
         phase = .idle
+    }
+
+    // MARK: - v1.5.0 免持模式
+
+    /// 開始免持聆聽。手不用按著，靠靜音自動斷句。
+    func startHandsFree(speaker: Language) {
+        guard case .idle = phase else { return }
+
+        // 先擋掉不支援離線辨識的語言 —— 免持會連續聽很久，
+        // 若走雲端等於一路在打網路，違背整個 App 的離線承諾。
+        guard handsFreeService.supportsOnDevice(speaker) else {
+            handsFreeUnsupportedHint = String(
+                format: String(localized: "handsfree.error.no_offline_asr"),
+                speaker.displayName
+            )
+            return
+        }
+
+        errorMessage = nil
+        handsFreeUnsupportedHint = nil
+        partialTranscript = ""
+        isHandsFree = true
+        phase = .handsFreeListening(speaker: speaker)
+
+        let listener = otherSide(of: speaker)
+
+        handsFreeTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await self.handsFreeService.start(language: speaker)
+            } catch {
+                self.errorMessage = (error as? LocalizedError)?.errorDescription
+                    ?? error.localizedDescription
+                self.stopHandsFree()
+                return
+            }
+
+            for await event in self.handsFreeService.events {
+                if Task.isCancelled { return }
+                switch event {
+                case .partial(let text):
+                    self.partialTranscript = text
+
+                case .finalized(let text):
+                    self.partialTranscript = ""
+                    self.isHearingSpeech = false
+                    self.enqueueHandsFreeTurn(
+                        text: text, speaker: speaker, listener: listener
+                    )
+
+                case .level(let db):
+                    self.micLevel = db
+
+                case .speechStarted:
+                    self.isHearingSpeech = true
+
+                case .recoverableError:
+                    // 單輪辨識失敗，服務會自己換一輪，這裡不打斷使用者
+                    break
+                }
+            }
+        }
+    }
+
+    /// 停止免持聆聽
+    func stopHandsFree() {
+        handsFreeTask?.cancel(); handsFreeTask = nil
+        handsFreeService.stop()
+        isHandsFree = false
+        isHearingSpeech = false
+        micLevel = -100
+        partialTranscript = ""
+        if case .handsFreeListening = phase { phase = .idle }
+    }
+
+    /// 免持模式下切換聆聽的語言（換人講話）
+    func switchHandsFreeSpeaker(to speaker: Language) {
+        guard isHandsFree else { return }
+        stopHandsFree()
+        startHandsFree(speaker: speaker)
+    }
+
+    /// 把一句辨識結果排進翻譯佇列
+    private func enqueueHandsFreeTurn(text: String, speaker: Language, listener: Language) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let turn = ConversationTurn(
+            speaker: speaker,
+            listener: listener,
+            originalText: trimmed
+        )
+        turns.append(turn)
+        pendingTranslationIDs.append(turn.id)
+        drainTranslationQueue()
+    }
+
+    /// 逐一翻譯佇列中的句子。**一次只翻一句**，見 `pendingTranslationIDs` 的說明。
+    private func drainTranslationQueue() {
+        guard !isDrainingQueue else { return }
+        isDrainingQueue = true
+
+        Task { [weak self] in
+            guard let self else { return }
+            defer { self.isDrainingQueue = false }
+
+            while !self.pendingTranslationIDs.isEmpty {
+                if Task.isCancelled { return }
+                let id = self.pendingTranslationIDs.removeFirst()
+                guard let turn = self.turns.first(where: { $0.id == id }) else { continue }
+
+                do {
+                    let pair = LanguagePair(source: turn.speaker, target: turn.listener)
+                    let result = try await self.useCase.translate(turn.originalText, pair: pair)
+                    self.updateTurn(id: id) { t in
+                        t.translatedText = result.translatedText
+                        t.translationError = nil
+                    }
+                } catch {
+                    let msg = self.friendlyTranslationError(error)
+                    self.updateTurn(id: id) { t in t.translationError = msg }
+                }
+            }
+        }
     }
 
     /// 對某一輪重試翻譯（v1.2.1：對話氣泡上「重試」按鈕呼叫）

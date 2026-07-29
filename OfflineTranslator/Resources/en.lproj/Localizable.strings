@@ -254,3 +254,12 @@
 /* v1.4.0: photo translation merged into camera translation */
 "live.action.pick_photo" = "Choose from library";
 "單張翻譯" = "Single shot";
+
+// MARK: - v1.5.0 Hands-free interpretation
+"handsfree.action.start" = "Hands-free";
+"handsfree.action.stop" = "Stop";
+"handsfree.status.listening" = "Listening — go ahead";
+"handsfree.status.hearing" = "Hearing you...";
+"handsfree.error.permission" = "Microphone or speech recognition permission is not granted. Please enable it in Settings.";
+"handsfree.error.no_offline_asr" = "%@ does not support offline speech recognition, so hands-free is unavailable. Please use press-and-hold instead.";
+"handsfree.error.audio_failed" = "Could not start the microphone.";

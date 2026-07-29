@@ -254,3 +254,12 @@
 /* v1.4.0：拍照翻譯併入相機翻譯 */
 "live.action.pick_photo" = "從相簿選圖";
 "單張翻譯" = "單張翻譯";
+
+// MARK: - v1.5.0 免持口譯模式
+"handsfree.action.start" = "免持模式";
+"handsfree.action.stop" = "停止";
+"handsfree.status.listening" = "聆聽中，請開始說話";
+"handsfree.status.hearing" = "聽到了…";
+"handsfree.error.permission" = "尚未允許麥克風或語音辨識權限，請到設定開啟。";
+"handsfree.error.no_offline_asr" = "%@ 目前不支援離線語音辨識，免持模式無法使用。請改用「按住說話」。";
+"handsfree.error.audio_failed" = "麥克風啟動失敗。";
