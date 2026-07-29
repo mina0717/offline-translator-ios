@@ -51,22 +51,13 @@ final class LiveCameraServiceMock: LiveCameraTranslationService {
         }
     }
 
-    /// Preview 沒有相機，回一張純色圖 + 全部假資料（已翻譯）
-    func captureStill() async throws -> StillCapture {
+    /// Preview 沒有相機，回一張純色圖
+    func captureFrame() async throws -> UIImage {
         let size = CGSize(width: 720, height: 1280)
-        let image = UIGraphicsImageRenderer(size: size).image { ctx in
+        return UIGraphicsImageRenderer(size: size).image { ctx in
             UIColor.darkGray.setFill()
             ctx.fill(CGRect(origin: .zero, size: size))
         }
-        let regions = samples.map { sample in
-            RecognizedTextRegion(
-                originalText: sample.0,
-                translatedText: sample.1,
-                normalizedRect: sample.2,
-                confidence: 0.95
-            )
-        }
-        return StillCapture(image: image, regions: regions)
     }
 
     func stop() {

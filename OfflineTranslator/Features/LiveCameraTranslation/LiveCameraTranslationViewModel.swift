@@ -27,9 +27,9 @@ final class LiveCameraTranslationViewModel: ObservableObject {
     @Published private(set) var phase: Phase = .idle
     @Published private(set) var regions: [RecognizedTextRegion] = []
     @Published private(set) var isPaused = false
-    /// v1.4.0 hotfix6：按下快門後凍結的單張結果。非 nil = 目前在「單張拍照翻譯」模式。
-    @Published private(set) var still: StillCapture?
-    /// 快門處理中（高品質辨識 + 整批翻譯需要一點時間）
+    /// v1.4.0：快門拍下的影像。非 nil 時由 View 轉交給拍照翻譯畫面處理。
+    @Published var capturedImage: UIImage?
+    /// 快門處理中
     @Published private(set) var isCapturing = false
     @Published private(set) var isThermallyThrottled = false
     /// 進場後一段時間都沒辨識到文字 → 顯示「對準文字試試」
@@ -171,7 +171,7 @@ final class LiveCameraTranslationViewModel: ObservableObject {
         hintTask?.cancel(); hintTask = nil
         startWatchdog?.cancel(); startWatchdog = nil
         captureTask?.cancel(); captureTask = nil
-        still = nil
+        capturedImage = nil
         isCapturing = false
         if let obs = thermalObserver {
             NotificationCenter.default.removeObserver(obs)
@@ -191,25 +191,23 @@ final class LiveCameraTranslationViewModel: ObservableObject {
         if !isPaused { scheduleAimHint() }
     }
 
-    /// v1.4.0 hotfix6：按下快門 → 凍結畫面做高品質單張翻譯。
+    /// v1.4.0：按下快門 → 抓下這一張畫面，交給拍照翻譯管線處理。
     ///
-    /// 即時模式為了跟上畫面必須妥協精度；凍結之後沒有時間壓力，
+    /// 即時模式為了跟上畫面必須妥協精度；單張沒有時間壓力，
     /// 可以讀更小的字、把整批文字全部翻完，而且畫面不再變動 —— 這才讀得下去。
     func capture() {
-        guard phase == .running, !isCapturing, still == nil else { return }
+        guard phase == .running, !isCapturing, capturedImage == nil else { return }
         isCapturing = true
         captureTask?.cancel()
         captureTask = Task { [weak self] in
             guard let self else { return }
             defer { self.isCapturing = false }
             do {
-                let result = try await self.service.captureStill()
+                let image = try await self.service.captureFrame()
                 guard !Task.isCancelled else { return }
-                // 凍結期間停掉即時 OCR，省電也避免背景繼續更新
-                self.service.setPaused(true)
-                self.showsAimHint = false
-                self.hintTask?.cancel()
-                self.still = result
+                // 單張畫面顯示期間停掉即時 OCR，省電也避免背景繼續更新
+                self.pauseForStill()
+                self.capturedImage = image
             } catch {
                 #if DEBUG
                 print("ℹ️ live camera capture failed: \(error)")
@@ -218,10 +216,22 @@ final class LiveCameraTranslationViewModel: ObservableObject {
         }
     }
 
-    /// 從單張模式回到即時預覽
+    /// 從相簿選了一張圖 —— 同樣交給拍照翻譯管線
+    func useLibraryImage(_ image: UIImage) {
+        pauseForStill()
+        capturedImage = image
+    }
+
+    private func pauseForStill() {
+        service.setPaused(true)
+        showsAimHint = false
+        hintTask?.cancel()
+    }
+
+    /// 從單張畫面回到即時預覽
     func resumeLive() {
         captureTask?.cancel(); captureTask = nil
-        still = nil
+        capturedImage = nil
         isPaused = false
         service.setPaused(false)
         scheduleAimHint()

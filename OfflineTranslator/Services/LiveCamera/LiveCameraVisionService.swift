@@ -136,55 +136,17 @@ final class LiveCameraVisionService: NSObject, LiveCameraTranslationService {
         }
     }
 
-    /// v1.4.0 hotfix6：快門。
+    /// v1.4.0：快門 —— 跟 video queue 要下一張影格，轉成 UIImage 回傳。
     ///
-    /// 流程：跟 video queue 要下一張影格 → 轉成 CGImage → 用**更寬鬆的最小字高 + .accurate**
-    /// 重新辨識 → 把整批文字**全部**翻完（不像即時模式有單輪上限）→ 回傳凍結畫面。
-    ///
-    /// 沿用與即時預覽相同的方向（`.right`）與 720p 長寬比，
-    /// 疊層座標因此可以完全共用 `TextOverlayView.overlayRect`，不需要另一套幾何。
-    func captureStill() async throws -> StillCapture {
+    /// 辨識與翻譯交給拍照翻譯管線（見 `LiveCameraTranslationService` 上的說明）。
+    /// 方向沿用 `.right`，與預覽所見一致。
+    func captureFrame() async throws -> UIImage {
         guard session.isRunning else { throw LiveCameraError.cameraUnavailable }
 
         let cgImage = try await withCheckedThrowingContinuation { (c: CheckedContinuation<CGImage, Error>) in
             stillBox.set(c)
         }
-
-        // 拍照期間把即時管線的閘門關上，避免兩邊搶同一個翻譯 bridge
-        isTranslating = true
-        defer { isTranslating = false }
-
-        let pairAtStart = currentPair
-        // `.accurate` 辨識一張 720p 可能要 0.5～2 秒。
-        // **絕對不能**在 MainActor 上跑 —— 這個功能已經因為卡主執行緒栽過兩次。
-        let languages = shared.recognitionLanguages()
-        let raw = await Task.detached(priority: .userInitiated) {
-            Self.recognizeForStill(cgImage: cgImage, languages: languages)
-        }.value
-
-        var regions: [RecognizedTextRegion] = []
-        regions.reserveCapacity(raw.count)
-        for (text, box, confidence) in raw {
-            let key = OCRTextQuality.cacheKey(text)
-            var region = RecognizedTextRegion(
-                originalText: text,
-                translatedText: cache.value(for: key),
-                normalizedRect: box,
-                confidence: confidence
-            )
-            if region.translatedText == nil {
-                if let translated = try? await translateWithTimeout(text: text, pair: pairAtStart) {
-                    cache.set(translated, for: key)
-                    region.translatedText = translated
-                }
-            }
-            regions.append(region)
-        }
-
-        return StillCapture(
-            image: UIImage(cgImage: cgImage, scale: 1, orientation: .right),
-            regions: regions
-        )
+        return UIImage(cgImage: cgImage, scale: 1, orientation: .right)
     }
 
     func stop() {
@@ -289,32 +251,6 @@ final class LiveCameraVisionService: NSObject, LiveCameraTranslationService {
     private nonisolated static func cgImage(from buffer: CVPixelBuffer) -> CGImage? {
         let ci = CIImage(cvPixelBuffer: buffer)
         return ciContext.createCGImage(ci, from: ci.extent)
-    }
-
-    /// 快門專用的辨識：沒有時間壓力，所以比即時模式更講究。
-    /// - 最小字高放寬到 0.008（即時是 0.015），小字也讀得到
-    /// - 一樣走 `OCRTextQuality` 擋亂碼，避免快門結果又出現亂碼黑框
-    private nonisolated static func recognizeForStill(
-        cgImage: CGImage,
-        languages: [String]
-    ) -> [(String, CGRect, Float)] {
-        let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .accurate
-        request.usesLanguageCorrection = true
-        request.minimumTextHeight = 0.008
-        request.recognitionLanguages = languages
-
-        let handler = VNImageRequestHandler(cgImage: cgImage, orientation: .right, options: [:])
-        guard (try? handler.perform([request])) != nil,
-              let observations = request.results else { return [] }
-
-        return observations.compactMap { obs in
-            guard let candidate = obs.topCandidates(1).first else { return nil }
-            let text = candidate.string.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard candidate.confidence >= OCRTextQuality.minConfidence,
-                  OCRTextQuality.looksLikeRealText(text) else { return nil }
-            return (text, obs.boundingBox, candidate.confidence)
-        }
     }
 
     private static func preheat(pair: LanguagePair, mtService: MTService) async {

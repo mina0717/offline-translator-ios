@@ -250,3 +250,7 @@
 "live.action.shutter" = "拍攝翻譯";
 "live.action.back_to_live" = "返回即時預覽";
 "live.status.capturing" = "辨識中，請稍候…";
+
+/* v1.4.0：拍照翻譯併入相機翻譯 */
+"live.action.pick_photo" = "從相簿選圖";
+"單張翻譯" = "單張翻譯";

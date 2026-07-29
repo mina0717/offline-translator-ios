@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import PhotosUI
 
 /// v1.4.0：即時鏡頭翻譯主畫面。
 ///
@@ -51,27 +52,21 @@ struct LiveCameraTranslationView: View {
     private struct Content: View {
         @ObservedObject var vm: LiveCameraTranslationViewModel
         @Environment(\.dismiss) private var dismiss
+        /// v1.4.0：相簿選圖（合併自原「拍照翻譯」入口）
+        @State fileprivate var libraryItem: PhotosPickerItem?
 
         /// 直向 720x1280 的長寬比
         private let cameraAspect: CGFloat = 720.0 / 1280.0
 
         var body: some View {
             ZStack {
-                // ── Layer 1：相機畫面（凍結時換成拍下來的靜止畫面）
-                if let still = vm.still {
-                    Image(uiImage: still.image)
-                        .resizable()
-                        .scaledToFill()
-                        .ignoresSafeArea()
-                } else {
-                    CameraPreviewLayer(session: vm.captureSession)
-                        .ignoresSafeArea()
-                }
+                // ── Layer 1：相機畫面
+                CameraPreviewLayer(session: vm.captureSession)
+                    .ignoresSafeArea()
 
                 // ── Layer 2：譯文疊層
-                // 凍結畫面沿用相同的方向與 720p 長寬比，所以座標換算完全共用。
                 GeometryReader { geo in
-                    ForEach(vm.still?.regions ?? vm.regions) { region in
+                    ForEach(vm.regions) { region in
                         TextOverlayView(
                             region: region,
                             viewSize: geo.size,
@@ -87,7 +82,7 @@ struct LiveCameraTranslationView: View {
                 if vm.phase == .running {
                     VStack(spacing: 0) {
                         Spacer()
-                        if vm.still == nil { statusBanner }
+                        statusBanner
                         controlsBar
                     }
                 }
@@ -120,7 +115,33 @@ struct LiveCameraTranslationView: View {
                     .transition(.opacity)
                 }
             }
-            .animation(.easeInOut(duration: 0.2), value: vm.still == nil)
+            // v1.4.0：單張結果一律交給拍照翻譯畫面 —— 列表模式、點按放大、
+            // 全螢幕縮放、自動偵測語言全部沿用既有實作，不在相機這邊重寫一套。
+            .fullScreenCover(
+                isPresented: Binding(
+                    get: { vm.capturedImage != nil },
+                    set: { if !$0 { vm.resumeLive() } }
+                )
+            ) {
+                NavigationStack {
+                    PhotoTranslationView(initialImage: vm.capturedImage)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) {
+                                Button("live.action.back_to_live") { vm.resumeLive() }
+                            }
+                        }
+                }
+            }
+            .onChange(of: libraryItem) { _, newItem in
+                guard let newItem else { return }
+                Task {
+                    if let data = try? await newItem.loadTransferable(type: Data.self),
+                       let image = UIImage(data: data) {
+                        vm.useLibraryImage(image)
+                    }
+                    libraryItem = nil
+                }
+            }
         }
 
         // MARK: Top bar
@@ -179,30 +200,31 @@ struct LiveCameraTranslationView: View {
 
         // MARK: Controls
 
-        /// v1.4.0 hotfix6：底部控制區。
-        /// 即時模式 = 語言列 + 快門；單張模式 = 只留「返回即時預覽」。
-        @ViewBuilder
+        /// v1.4.0：底部控制區 —— 語言列 + （相簿｜快門）。
         private var controlsBar: some View {
-            if vm.still == nil {
-                VStack(spacing: Theme.Spacing.md) {
-                    languageRow
+            VStack(spacing: Theme.Spacing.md) {
+                languageRow
+                HStack(spacing: Theme.Spacing.xl) {
+                    libraryButton
                     shutterButton
+                    // 讓快門維持在正中央
+                    Color.clear.frame(width: 44, height: 44)
                 }
-                .padding(.bottom, Theme.Spacing.lg)
-            } else {
-                Button { vm.resumeLive() } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.counterclockwise")
-                        Text("live.action.back_to_live")
-                    }
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, Theme.Spacing.lg)
-                    .padding(.vertical, Theme.Spacing.sm)
-                    .background(Capsule().fill(.white))
-                }
-                .padding(.bottom, Theme.Spacing.lg)
             }
+            .padding(.bottom, Theme.Spacing.lg)
+        }
+
+        /// 相簿入口（合併自原「拍照翻譯」）
+        private var libraryButton: some View {
+            PhotosPicker(selection: $libraryItem, matching: .images, photoLibrary: .shared()) {
+                Image(systemName: "photo.on.rectangle")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(Circle().fill(.white.opacity(0.18)))
+            }
+            .disabled(vm.isCapturing)
+            .accessibilityLabel(Text("live.action.pick_photo"))
         }
 
         private var languageRow: some View {

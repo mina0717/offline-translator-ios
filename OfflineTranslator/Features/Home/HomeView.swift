@@ -8,8 +8,8 @@ import SwiftUI
 ///   修復 v1.1 起就存在的 bug：透過 `String` 變數傳給 `Text` 不會走在地化。
 struct HomeView: View {
     enum Destination: Hashable {
-        case text, speech, photo, languagePack, history, vocabulary, conversation
-        /// v1.4.0：即時鏡頭翻譯
+        case text, speech, languagePack, history, vocabulary, conversation
+        /// v1.4.0：相機翻譯（原「拍照翻譯」已併入，見 LiveCameraTranslationView）
         case liveCamera
     }
 
@@ -36,8 +36,8 @@ struct HomeView: View {
                 ) {
                     HomeTile(icon: "text.bubble.fill", title: "文字翻譯",  subtitle: "輸入即翻譯", destination: .text)
                     HomeTile(icon: "mic.fill",         title: "語音翻譯",  subtitle: "按住說話",   destination: .speech)
-                    HomeTile(icon: "camera.fill",      title: "拍照翻譯",  subtitle: "辨識圖片文字", destination: .photo)
-                    // v1.4.0：相機翻譯（即時疊字 + 快門單張）
+                    // v1.4.0：原「拍照翻譯」已併入「相機翻譯」
+                    // （即時疊字 + 快門單張 + 相簿選圖，同一個入口）
                     HomeTile(icon: "camera.viewfinder", title: "相機翻譯", subtitle: "即時疊字或拍照", destination: .liveCamera)
                     HomeTile(icon: "bubble.left.and.bubble.right.fill", title: "雙向對話", subtitle: "面對面互譯", destination: .conversation)
                     HomeTile(icon: "arrow.down.circle.fill", title: "語言包", subtitle: "離線管理",   destination: .languagePack)
@@ -88,7 +88,6 @@ struct HomeView: View {
             switch dest {
             case .text:         TextTranslationView()
             case .speech:       SpeechTranslationView()
-            case .photo:        PhotoTranslationView()
             case .liveCamera:   LiveCameraTranslationView()
             case .conversation: ConversationView()
             case .languagePack: LanguagePackView()

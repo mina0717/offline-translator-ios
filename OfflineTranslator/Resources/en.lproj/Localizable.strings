@@ -250,3 +250,7 @@
 "live.action.shutter" = "Capture and translate";
 "live.action.back_to_live" = "Back to live";
 "live.status.capturing" = "Scanning, please wait…";
+
+/* v1.4.0: photo translation merged into camera translation */
+"live.action.pick_photo" = "Choose from library";
+"單張翻譯" = "Single shot";

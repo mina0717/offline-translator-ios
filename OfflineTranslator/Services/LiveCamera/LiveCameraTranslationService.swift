@@ -2,16 +2,11 @@ import Foundation
 import AVFoundation
 import UIKit
 
-/// v1.4.0 hotfix6：按下快門後的單張結果。
-///
-/// 即時模式為了跟上畫面必須節流 + 用較保守的門檻，精度一定有妥協；
-/// 按下快門凍結之後就沒有時間壓力了 —— 可以用更低的最小字高、
-/// 把整批文字全部翻完，而且畫面不再變動，使用者能好好讀。
-struct StillCapture {
-    /// 凍結的畫面（已套用與即時預覽相同的方向，疊層座標因此完全共用）
-    let image: UIImage
-    let regions: [RecognizedTextRegion]
-}
+// v1.4.0 hotfix9（合併拍照翻譯）：
+// 快門只負責「抓下這一張畫面」，辨識與翻譯一律交給既有的拍照翻譯管線
+// （PhotoTranslationViewModel）。好處是單張模式直接獲得拍照翻譯已經成熟的
+// 全部能力：列表模式、點按放大 popover、全螢幕縮放、自動偵測語言，
+// 而不是在相機這邊再實作一套半殘的。
 
 /// v1.4.0：即時鏡頭翻譯服務介面。
 ///
@@ -32,9 +27,10 @@ protocol LiveCameraTranslationService: AnyObject {
     /// 啟動 capture（呼叫端需先確認相機權限）。
     func start() async throws
 
-    /// v1.4.0 hotfix6：按下快門 —— 凍結當前影格，做一次**不節流的高品質**辨識 + 完整翻譯。
+    /// v1.4.0：按下快門 —— 抓下當前影格。
+    /// 只回傳影像，辨識與翻譯交給拍照翻譯管線。
     /// 這條路徑不受 `setPaused` 影響（暫停時也拍得到）。
-    func captureStill() async throws -> StillCapture
+    func captureFrame() async throws -> UIImage
 
     /// 停止 capture 並釋放資源。
     func stop()

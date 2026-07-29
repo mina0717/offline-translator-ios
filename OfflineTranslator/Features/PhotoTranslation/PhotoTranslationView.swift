@@ -4,6 +4,10 @@ import PhotosUI
 import TipKit
 
 struct PhotoTranslationView: View {
+    /// v1.4.0：從相機翻譯的快門／相簿帶進來的圖，進場就直接開始辨識。
+    /// 為 nil 時維持原本行為（畫面上自己按相機／相簿）。
+    var initialImage: UIImage? = nil
+
     @EnvironmentObject private var deps: AppDependencies
     @State private var vm: PhotoTranslationViewModel?
 
@@ -16,11 +20,15 @@ struct PhotoTranslationView: View {
                 ProgressView()
             }
         }
-        .navigationTitle("拍照翻譯")
+        .navigationTitle("單張翻譯")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             if vm == nil {
-                vm = PhotoTranslationViewModel(useCase: deps.photoTranslateUseCase)
+                let created = PhotoTranslationViewModel(useCase: deps.photoTranslateUseCase)
+                vm = created
+                if let initialImage {
+                    await created.process(image: initialImage)
+                }
             }
         }
     }
