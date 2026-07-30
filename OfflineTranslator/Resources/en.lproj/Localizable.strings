@@ -263,3 +263,49 @@
 "handsfree.error.permission" = "Microphone or speech recognition permission is not granted. Please enable it in Settings.";
 "handsfree.error.no_offline_asr" = "%@ does not support offline speech recognition, so hands-free is unavailable. Please use press-and-hold instead.";
 "handsfree.error.audio_failed" = "Could not start the microphone.";
+
+// MARK: - v1.5.0 Hands-free listening (standalone)
+"免持聆聽" = "Listen";
+"免動手·聽了就譯" = "Hands-free translate";
+"對方說" = "They speak";
+"我讀" = "I read";
+"開始聆聽" = "Start listening";
+"停止聆聽" = "Stop listening";
+"按下方按鈕開始聆聽" = "Tap below to start listening";
+"手不用一直按著。對方講完一句，譯文就會自動出現在這裡。" = "No need to hold anything. When they finish a sentence, the translation appears here automatically.";
+"聆聽中，請對方開始說話" = "Listening — they can start speaking";
+"翻譯中…" = "Translating...";
+"handsfree.line.translate_failed" = "Translation failed for this line";
+
+// MARK: - v1.5.0 Feedback
+"feedback.title" = "Send Feedback";
+"feedback.section.message" = "What would you like to tell us?";
+"feedback.footer.message" = "Bugs, suggestions, or feature requests are all welcome.";
+"feedback.placeholder" = "Describe what happened, or share your idea...";
+"feedback.section.media" = "Attach photos / videos (optional)";
+"feedback.footer.media" = "A screenshot or screen recording helps us find the problem faster. Up to 5 files.";
+"feedback.action.add_media" = "Add photo or video";
+"feedback.action.send" = "Send by email";
+"feedback.action.copy" = "Copy content";
+"feedback.status.loading_media" = "Loading files...";
+"feedback.footer.privacy" = "Feedback is sent from your own mail app — no server of ours ever touches it. You can review the full contents before sending.";
+"feedback.warning.too_large" = "Attachments total %.1f MB. Over 20 MB may be rejected by mail providers — consider removing some or attaching screenshots instead.";
+"feedback.mail.subject" = "Offline Translator v%@ Feedback";
+"feedback.mail.device_section" = "Technical details, to help us investigate:";
+"feedback.alert.no_mail.title" = "No mail account found";
+"feedback.alert.no_mail.body" = "This device has no mail account set up. You can copy the content and send it to %@ yourself.";
+
+// MARK: - v1.5.0 Support
+"support.nav_title" = "Support Us";
+"support.title" = "If you like this app, a little encouragement goes a long way!";
+"support.body" = "Your support is what keeps me maintaining it.";
+"support.qr.hint" = "Scan the QR code above with your camera or banking app";
+"support.qr.offline" = "An internet connection is needed to show the QR code";
+"support.action.open" = "Open in browser";
+"support.action.copy" = "Copy link";
+"support.action.copied" = "Copied";
+"support.disclaimer" = "Supporting is entirely voluntary and unlocks nothing. Every feature stays free, always.";
+
+// MARK: - v1.5.0 Settings section
+"settings.community.section_header" = "Support & Feedback";
+"settings.community.footer" = "Questions or ideas are always welcome.";

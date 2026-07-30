@@ -17,6 +17,9 @@ struct SettingsView: View {
     }
     /// 顯示用：當前 device 可用空間
     @State private var availableGB: Double = LanguagePackBootstrap.queryAvailableStorageGB()
+    /// v1.5.0：反饋 / 贊助 sheet
+    @State private var isShowingFeedback = false
+    @State private var isShowingSupport = false
 
     var body: some View {
         NavigationStack {
@@ -96,9 +99,42 @@ struct SettingsView: View {
                 } header: {
                     Text("settings.about.section_header")
                 }
+
+                // v1.5.0：使用者反饋 + 贊助
+                Section {
+                    Button {
+                        isShowingFeedback = true
+                    } label: {
+                        Label {
+                            Text("feedback.title")
+                                .foregroundStyle(Theme.Colors.textPrimary)
+                        } icon: {
+                            Image(systemName: "bubble.left.and.exclamationmark.bubble.right")
+                                .foregroundStyle(Theme.Colors.accent)
+                        }
+                    }
+
+                    Button {
+                        isShowingSupport = true
+                    } label: {
+                        Label {
+                            Text("support.nav_title")
+                                .foregroundStyle(Theme.Colors.textPrimary)
+                        } icon: {
+                            Image(systemName: "heart.fill")
+                                .foregroundStyle(.pink)
+                        }
+                    }
+                } header: {
+                    Text("settings.community.section_header")
+                } footer: {
+                    Text("settings.community.footer")
+                }
             }
             .navigationTitle("settings.title")
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $isShowingFeedback) { FeedbackView() }
+            .sheet(isPresented: $isShowingSupport) { SupportView() }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("action.done") { dismiss() }

@@ -263,3 +263,49 @@
 "handsfree.error.permission" = "尚未允許麥克風或語音辨識權限，請到設定開啟。";
 "handsfree.error.no_offline_asr" = "%@ 目前不支援離線語音辨識，免持模式無法使用。請改用「按住說話」。";
 "handsfree.error.audio_failed" = "麥克風啟動失敗。";
+
+// MARK: - v1.5.0 免持聆聽（主畫面獨立模式）
+"免持聆聽" = "免持聆聽";
+"免動手·聽了就譯" = "免動手·聽了就譯";
+"對方說" = "對方說";
+"我讀" = "我讀";
+"開始聆聽" = "開始聆聽";
+"停止聆聽" = "停止聆聽";
+"按下方按鈕開始聆聽" = "按下方按鈕開始聆聽";
+"手不用一直按著。對方講完一句，譯文就會自動出現在這裡。" = "手不用一直按著。對方講完一句，譯文就會自動出現在這裡。";
+"聆聽中，請對方開始說話" = "聆聽中，請對方開始說話";
+"翻譯中…" = "翻譯中…";
+"handsfree.line.translate_failed" = "這句翻譯失敗";
+
+// MARK: - v1.5.0 使用者反饋
+"feedback.title" = "意見回饋";
+"feedback.section.message" = "想告訴我們什麼？";
+"feedback.footer.message" = "遇到問題、有建議、或想要新功能都歡迎告訴我們。";
+"feedback.placeholder" = "請描述你遇到的狀況或建議…";
+"feedback.section.media" = "附加圖片／影片（選填）";
+"feedback.footer.media" = "附上截圖或錄影能幫助我們更快找到問題。最多 5 個檔案。";
+"feedback.action.add_media" = "加入圖片或影片";
+"feedback.action.send" = "以郵件寄出";
+"feedback.action.copy" = "複製內容";
+"feedback.status.loading_media" = "讀取檔案中…";
+"feedback.footer.privacy" = "回饋會透過你自己的郵件 App 寄出，我們沒有任何伺服器會接觸到這些內容。寄出前你可以看到完整內容。";
+"feedback.warning.too_large" = "附件共 %.1f MB，超過 20 MB 可能會被郵件服務退回，建議刪掉幾個或改附截圖。";
+"feedback.mail.subject" = "離線翻譯 v%@ 意見回饋";
+"feedback.mail.device_section" = "以下為技術資訊，方便我們排查問題：";
+"feedback.alert.no_mail.title" = "找不到郵件帳號";
+"feedback.alert.no_mail.body" = "這台裝置尚未設定郵件帳號。你可以複製內容後，自行寄到 %@";
+
+// MARK: - v1.5.0 贊助
+"support.nav_title" = "支持我們";
+"support.title" = "如果你覺得這 App 還不錯，歡迎支持鼓勵！";
+"support.body" = "你的支持是我繼續維護的動力～";
+"support.qr.hint" = "用手機相機或銀行 App 掃描上方 QR Code";
+"support.qr.offline" = "需要連上網路才能顯示 QR Code";
+"support.action.open" = "在瀏覽器開啟";
+"support.action.copy" = "複製連結";
+"support.action.copied" = "已複製";
+"support.disclaimer" = "贊助完全出於自願，不會解鎖任何功能。App 的所有功能永遠免費。";
+
+// MARK: - v1.5.0 設定頁新區塊
+"settings.community.section_header" = "支持與回饋";
+"settings.community.footer" = "有任何問題或建議都歡迎告訴我們。";
