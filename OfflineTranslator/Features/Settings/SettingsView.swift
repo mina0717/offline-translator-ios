@@ -17,9 +17,8 @@ struct SettingsView: View {
     }
     /// 顯示用：當前 device 可用空間
     @State private var availableGB: Double = LanguagePackBootstrap.queryAvailableStorageGB()
-    /// v1.5.0：反饋 / 贊助 sheet
+    /// v1.5.0：意見回饋 sheet
     @State private var isShowingFeedback = false
-    @State private var isShowingSupport = false
 
     var body: some View {
         NavigationStack {
@@ -100,7 +99,8 @@ struct SettingsView: View {
                     Text("settings.about.section_header")
                 }
 
-                // v1.5.0：使用者反饋 + 贊助
+                // v1.5.0：使用者反饋
+                // 註：贊助頁已依 App Store 指南 3.1.1 移出建置（見 v15.9 報告）
                 Section {
                     Button {
                         isShowingFeedback = true
@@ -114,17 +114,6 @@ struct SettingsView: View {
                         }
                     }
 
-                    Button {
-                        isShowingSupport = true
-                    } label: {
-                        Label {
-                            Text("support.nav_title")
-                                .foregroundStyle(Theme.Colors.textPrimary)
-                        } icon: {
-                            Image(systemName: "heart.fill")
-                                .foregroundStyle(.pink)
-                        }
-                    }
                 } header: {
                     Text("settings.community.section_header")
                 } footer: {
@@ -134,7 +123,6 @@ struct SettingsView: View {
             .navigationTitle("settings.title")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $isShowingFeedback) { FeedbackView() }
-            .sheet(isPresented: $isShowingSupport) { SupportView() }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("action.done") { dismiss() }

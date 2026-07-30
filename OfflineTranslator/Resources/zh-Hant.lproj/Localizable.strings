@@ -295,7 +295,8 @@
 "feedback.alert.no_mail.title" = "找不到郵件帳號";
 "feedback.alert.no_mail.body" = "這台裝置尚未設定郵件帳號。你可以複製內容後，自行寄到 %@";
 
-// MARK: - v1.5.0 贊助
+// MARK: - v1.5.0 贊助（⚠️ 目前未使用：SupportView 已依 App Store 指南 3.1.1 移出建置，
+//          字串保留以便日後改走 IAP 或恢復時直接沿用）
 "support.nav_title" = "支持我們";
 "support.title" = "如果你覺得這 App 還不錯，歡迎支持鼓勵！";
 "support.body" = "你的支持是我繼續維護的動力～";
@@ -307,5 +308,5 @@
 "support.disclaimer" = "贊助完全出於自願，不會解鎖任何功能。App 的所有功能永遠免費。";
 
 // MARK: - v1.5.0 設定頁新區塊
-"settings.community.section_header" = "支持與回饋";
+"settings.community.section_header" = "意見回饋";
 "settings.community.footer" = "有任何問題或建議都歡迎告訴我們。";

@@ -295,7 +295,8 @@
 "feedback.alert.no_mail.title" = "No mail account found";
 "feedback.alert.no_mail.body" = "This device has no mail account set up. You can copy the content and send it to %@ yourself.";
 
-// MARK: - v1.5.0 Support
+// MARK: - v1.5.0 Support (currently UNUSED: SupportView removed from the build
+//          per App Store guideline 3.1.1; strings kept for future restore)
 "support.nav_title" = "Support Us";
 "support.title" = "If you like this app, a little encouragement goes a long way!";
 "support.body" = "Your support is what keeps me maintaining it.";
@@ -307,5 +308,5 @@
 "support.disclaimer" = "Supporting is entirely voluntary and unlocks nothing. Every feature stays free, always.";
 
 // MARK: - v1.5.0 Settings section
-"settings.community.section_header" = "Support & Feedback";
+"settings.community.section_header" = "Feedback";
 "settings.community.footer" = "Questions or ideas are always welcome.";
