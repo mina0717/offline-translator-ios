@@ -17,12 +17,12 @@ xcodegen generate
 open OfflineTranslator.xcodeproj
 ```
 
-在 Xcode 左上 scheme 選到 `OfflineTranslator`，目標選 `iPhone 15 Simulator`（或 17.4 以上），⌘R 跑起來。
+在 Xcode 左上 scheme 選到 `OfflineTranslator`，目標選 `iPhone 15 Simulator`（或 18.0 以上），⌘R 跑起來。
 
 若跑不起來，常見問題：
 - `XcodeGen` 版本太舊 → `brew upgrade xcodegen`
 - Bundle ID 撞到（你已經用過 `com.placeholder.OfflineTranslator`）→ 在 `project.yml` 改成自己的
-- Deployment target 選到 < 17.4 → Apple Translation framework 不存在，翻譯會整個失敗
+- Deployment target 選到 < 18.0 → 低於專案最低支援版本（IPHONEOS_DEPLOYMENT_TARGET = 18.0），App 無法安裝
 
 ---
 
@@ -95,7 +95,7 @@ xcodebuild test \
 
 ## 三、B. 真機 E2E（交付前必跑）
 
-準備：一支 iPhone（iOS 17.4+）、Apple Developer 個人帳號、Lightning/USB-C 線。
+準備：一支 iPhone（iOS 18.0+）、Apple Developer 個人帳號、Lightning/USB-C 線。
 
 ### B1. 切換到真實依賴
 

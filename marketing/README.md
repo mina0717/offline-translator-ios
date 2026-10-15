@@ -1,5 +1,10 @@
 # 📣 Marketing Kit — Offline Translator
 
+> **WARNING / 注意：這是 v1.1 時期的宣傳草稿，內容已與現行 App 不符，對外使用前必須改寫。**
+> 已知不實或過時：「17 萬詞離線字典」（App 沒有這個字典）、「匯出 CSV」（沒有此功能）、「四種模式＝文字/語音/拍照/字典」（現為 文字/語音/雙向對話/相機）、「MIT 授權」（repo 沒有授權檔）、「iOS 17.x」（最低為 iOS 18.0）。
+> 現行事實請以 [FAQ](FAQ.md) 與 [PRESS_KIT](PRESS_KIT.md)（2026-10-15 重寫）為準。
+
+
 Everything you need to launch. 6 platforms × CN/EN. All ready.
 
 ## 📦 What's in this folder

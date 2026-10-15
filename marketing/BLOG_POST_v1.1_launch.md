@@ -1,6 +1,12 @@
-# Why I Spent 6 Months Building a Translator That Doesn't Collect Your Data
+# Why I Built a Translator That Doesn't Collect Your Data
 
 *By @mina0717 · 2026-04-21 · Taipei, Taiwan*
+
+> **WARNING / 注意：這是 v1.1 時期的未發表草稿，不可直接發佈。**
+> 已修正的事實錯誤：離線字典（170K 詞）、單字本 CSV 匯出、MLKit fallback、MIT 授權、「6 個月」。這些在現行 App 都不存在或不成立。
+> 文中的個人情境與數字（咖啡廳、凌晨 2 點、電量 38%、200ms、3 年舊 iPhone）未經查證，發表前請自行確認或刪除。
+> 現行功能請以 [FAQ](FAQ.md) 與 [PRESS_KIT](PRESS_KIT.md)（2026-10-15 重寫）為準。
+
 
 I'm writing this from a coffee shop in Taipei at 2 AM. My iPhone battery is at 38%. Airplane mode is on. I'm translating a Japanese menu from last week's trip into Chinese to figure out what I actually ate.
 
@@ -28,7 +34,7 @@ A translator that:
 - Works on the airplane.
 - Never makes a network call for translation.
 - Doesn't ship analytics, crash reports, or any events to anyone.
-- Has an offline dictionary big enough to cover real language (not just 3000 common words).
+- Keeps what you save in a personal vocabulary notebook on the device.
 - Can translate a photo (because the menu and the sign and the manual and the prescription).
 - Can take voice input and give you the result out loud (because your hands are on luggage and your eyes are on traffic).
 - Is free and has no ads, because what's the point otherwise.
@@ -42,17 +48,17 @@ Nothing like this existed. So I built it.
 1. **Text** — type or paste. Live character count (5000 cap). One-tap copy, save, retry.
 2. **Voice** — hold to speak. Release to translate. Haptic feedback. On-device speech recognition.
 3. **Photo** — point the camera at a sign, menu, receipt, prescription. Vision framework finds text. Apple Translation translates it. You see both.
-4. **Dictionary** — 170,000-word offline English-Chinese dictionary with parts of speech, examples, and one-tap save.
+4. **Conversation** — lay the phone flat between two people; the screen splits, and the top half faces the other person.
 
 In v1.1 I added:
 
-- **Vocabulary Notebook** — a little wordbook that remembers everything you saved, groups by date, exports to CSV.
+- **Vocabulary Notebook** — a little wordbook that remembers everything you saved, groups by date.
 - **Share Extension** — select text in Safari, share → Offline Translator → translated.
 - **Siri Shortcut** — "Hey Siri, translate clipboard."
 - **TipKit onboarding** — four gentle tips for first-time users.
 - **Dark mode palette** — hand-tuned, not just inverted.
 
-Everything runs on your iPhone. Apple's Translation framework (iOS 17.4+) does the heavy lifting. For users on iOS 17.0-17.3, there's an MLKit fallback.
+Everything runs on your iPhone. Apple's Translation framework (iOS 18.0+) does the heavy lifting.
 
 ## The part I'm most proud of
 
@@ -64,7 +70,7 @@ I didn't add a "sign in" screen.
 
 I didn't add a single third-party SDK that makes network calls.
 
-You can read the source. It's MIT-licensed: https://github.com/mina0717/offline-translator-ios
+You can read the source. The source is public (no open-source license file yet): https://github.com/mina0717/offline-translator-ios
 
 Search the repo for `URLSession`. You'll find exactly zero results in the translation path. You'll find exactly zero instances of analytics SDK imports. The `PrivacyInfo.xcprivacy` manifest declares an empty array for "collected data types" — not by omission, but because the array is genuinely empty.
 
@@ -82,10 +88,10 @@ It's not perfect — it's tuned for everyday phrases, not literary translation �
 
 ### 3. Shipping alone is faster than you think
 
-6 months from idea to App Store. That includes:
+From idea to App Store (first release 2026-04-30). That includes:
 - 50+ tracked tasks (see my progress report in the repo)
 - 4 translation modes fully functional
-- 170K-word dictionary ingestion pipeline
+- Vocabulary notebook and history
 - Share Extension + Siri integration
 - TipKit onboarding
 - 5 IG launch cards + multi-platform launch copy

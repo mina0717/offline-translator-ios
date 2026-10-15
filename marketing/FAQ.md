@@ -1,8 +1,11 @@
-# 常見問題 FAQ — Offline Translator v1.1
+# 常見問題 FAQ — 離線翻譯 Offline Translator
 
-Last updated: 2026-04-22 · @mina0717
+最後更新：2026-10-15 · @mina0717
 
-雙語 FAQ（繁中 + English）。任何問題歡迎在 [@mina0717](https://twitter.com/mina0717) 或 [mina0717@proton.me](mailto:mina0717@proton.me) 聯繫。
+雙語 FAQ（繁中 + English）。本文件已依 App 實際功能重寫；舊版（v1.1 時期草稿）有多處與事實不符，已移除。
+
+> App Store 目前上架版本為 **1.3.0**；**1.5.0 已送審，通過後自動上線**。標註「（1.5.0）」的功能在上線前尚未提供。
+> 意見回饋：1.5.0 起可在 App「設定」內以 Email 回報；在此之前請到 [GitHub Issues](https://github.com/mina0717/offline-translator-ios/issues)。
 
 ---
 
@@ -10,230 +13,197 @@ Last updated: 2026-04-22 · @mina0717
 
 ### 🔐 關於隱私
 
-**Q1. 真的 100% 離線嗎？**
-是。翻譯、語音辨識、OCR 全部在你的 iPhone 本地運算。第一次使用 Apple Translation 時會下載「語言包」（約 40 MB），之後就不需要網路。你可以把飛航模式打開試試看 — 還是完全可以用。
+**Q1. 真的是離線嗎？**
+翻譯由 Apple 的 Translation 框架在你的 iPhone 上執行。每個語言第一次使用前，需要由 iOS 系統下載「語言包」（這一步需要網路，由系統處理）；下載完成後，翻譯、拍照／相機翻譯的文字辨識都不需要網路，飛航模式也能用。
 
 **Q2. 你有在收集我的使用資料嗎？**
-沒有。零。
+沒有。App 隱私清單（`PrivacyInfo.xcprivacy`）宣告：不追蹤（`NSPrivacyTracking` = false）、不收集任何資料類型（`NSPrivacyCollectedDataTypes` 為空）。原始碼公開在 GitHub，程式碼裡沒有 `URLSession` 等網路請求。
 
-打開 `PrivacyInfo.xcprivacy` 就知道：`NSPrivacyCollectedDataTypes` 是空陣列、`NSPrivacyTracking` 是 false。程式碼是 MIT 授權、公開的，你可以自己搜 `URLSession` 驗證沒有任何網路呼叫。
+**Q3. 有分析或當機回報 SDK 嗎？**
+沒有。沒有 Firebase、Crashlytics、Mixpanel、Amplitude 或廣告 SDK，也沒有任何第三方套件。
 
-**Q3. 那當機回報 / 分析 SDK 呢？**
-一個都沒有。沒有 Firebase、沒有 Crashlytics、沒有 Mixpanel、沒有 Amplitude。我刻意不裝，因為裝了就不是「真的隱私」。
+**Q4. 第一次要下載語言包，那算不算用網路？**
+算，但那是 iOS 系統級的下載，由 Apple 處理，App 不會上傳你輸入的內容。大小依語言而異（約 80 MB 起）。下載後即可離線使用；可在 iPhone「設定 → App → 翻譯」管理語言。
 
-**Q4. 我看到第一次使用要下載語言包，那算不算網路？**
-那是 iOS 系統級的下載，由 Apple 處理，你可以在 iPhone「設定 → 一般 → 語言與地區 → 翻譯語言」管理。下載完就再也不用。App 本身從來不上傳你的輸入內容。
+**Q5. 語音辨識也是離線嗎？**
+App 會優先使用「裝置端辨識」，但是否可用取決於你的 iPhone 與該語言：
+- **免持模式**（雙向對話的免持、1.5.0 的免持聆聽）：若該語言沒有裝置端辨識，App 不會啟動，不會偷偷改用雲端。
+- **按住說話**：優先使用裝置端辨識；如果你的 iPhone 對該語言沒有裝置端辨識，iOS 可能改用 Apple 的語音辨識服務（需要網路）。
 
 ---
 
 ### 📱 功能使用
 
-**Q5. 支援哪些語言？**
-v1.1 主打 繁體中文 ↔ 英文。Apple Translation 框架也支援日文、韓文、西班牙文、法文、德文、義大利文、葡萄牙文、俄文、阿拉伯文、泰文、越南文、印尼文、簡體中文（共 20 種以上），iOS 17.4+ 完全相容。
+**Q6. 支援哪些語言？**
+14 種，任兩種都能互譯（共 182 個方向）：繁體中文、English、日本語、한국어、Deutsch、Français、Español、ไทย、Tiếng Việt、Português、Italiano、Bahasa Indonesia、Nederlands、Türkçe（土耳其文翻譯需要 iOS 18.4 以上）。
 
-**Q6. 17 萬詞的離線字典是什麼？**
-一個整合自多份開源英漢字典、清理後塞進 Core Data 的本地詞庫。每個字附詞性、中文釋義、例句。查詢速度 < 50ms。
+**Q7. 有哪些翻譯方式？**
+- **文字翻譯**：輸入即譯，可把翻譯收進單字本。
+- **語音翻譯**：按住說話，放開即譯。
+- **雙向對話**：手機平放兩人之間，畫面上下分割，上半部旋轉 180° 給對方看。
+- **相機翻譯**：鏡頭對準文字，譯文疊在原文位置。（1.3.0 為「拍照翻譯」，從相機或相簿取圖；1.5.0 合併為一個相機模式，可即時疊字、按快門拍單張、從相簿選圖。）
+- **免持聆聽**（1.5.0）：不用按住按鈕，App 聽對方說話，把譯文顯示在螢幕上。
 
-**Q7. 拍照翻譯怎麼用？**
-相機對準文字（招牌、菜單、說明書都可以）→ 自動偵測文字區塊 → 翻譯出現在原字上方。用的是 Apple Vision 框架 + Apple Translation，全程離線。
+**Q8. 相機翻譯找不到字？**
+確認光線充足、字體清楚、鏡頭乾淨。手寫字、斜體、低對比的字可能辨識不到；可以改用拍照（快門）取單張，或先用相機拍一張清楚的照片再從相簿匯入。
 
-**Q8. 語音模式按住說話是怎樣？**
-長按麥克風開始錄音 → 說話 → 放開手指 → 自動辨識 + 翻譯。觸覺回饋會告訴你什麼時候開始錄、什麼時候結束。用的是 `SFSpeechRecognizer` + `.requiresOnDeviceRecognition = true`，完全本地。
+**Q9. 單字本可以匯出嗎？**
+目前**不能**匯出。單字本是 App 內的收藏清單，用來把翻譯存起來之後回頭看。
 
-**Q9. 詞彙本可以匯出嗎？**
-可以。進入「詞彙本」→ 右上角「匯出」→ 選 CSV → 透過分享選單傳到 Mail、Notes、Files 都行。CSV 包含原文、譯文、收藏日期、分類。
-
-**Q10. Siri 捷徑「翻譯剪貼簿」怎麼用？**
-複製任何文字 → 對 Siri 說「翻譯剪貼簿」→ App 開啟並顯示翻譯結果。第一次用要先到 iOS 設定 → Siri 與搜尋 → Offline Translator → 允許。
+**Q10. Siri 捷徑怎麼用？**
+App 提供兩個捷徑：「翻譯文字」和「翻譯剪貼簿」，可在「捷徑」App 找到，也可以對 Siri 說「用 離線翻譯 翻譯剪貼簿」。
 
 **Q11. 分享擴充（Share Extension）怎麼用？**
-在 Safari / 備忘錄 / 訊息 選取文字 → 點「分享」→ 找到「Offline Translator」→ 翻譯結果直接出現在 share sheet。
+在 Safari、備忘錄等 App 選取文字 → 點「分享」→ 選「離線翻譯」。
+
+**Q12. 可以設定開啟 App 就直接進入某個功能嗎？**（1.5.0）
+可以。在 App「設定」的「啟動畫面」→「開啟 App 時直接進入」選一個功能，或在主畫面長按某個功能卡片選「設為啟動畫面」。設定後，開啟 App 會直接進入該功能，按返回仍可回到主畫面；在設定中改回「主畫面」，或長按選「取消設為啟動畫面」即可還原。
+
+**Q13. 介面可以改成英文嗎？**
+可以。「設定」內的「介面語言」可選 跟隨系統／繁體中文／English，立即生效，不用重開 App。
 
 ---
 
-### 💰 費用與商業模式
+### 💰 費用
 
-**Q12. 為什麼完全免費？**
-因為沒成本。沒有伺服器、沒有分析、沒有訂閱後台 — 翻譯都在你手機上跑。唯一成本是我的時間，這個我自願付出。
+**Q14. 要錢嗎？**
+免費。沒有廣告、沒有內購、不用註冊帳號。
 
-**Q13. 會不會改成訂閱制？**
-不會。我對自己承諾 v1.x 系列永遠免費、永遠不加廣告。如果未來有商業需求（比如 Pro 版高級功能），會是另外一個 App，不會影響現有版本。
-
-**Q14. 有內購嗎？**
-沒有。IAP = 0，廣告 = 0，訂閱 = 0，登入畫面 = 0。
+**Q15. 為什麼能免費？**
+翻譯在你的手機上執行，沒有伺服器要維護。
 
 ---
 
 ### 🔧 技術問題
 
-**Q15. 支援 iOS 多少版本？**
-最低 iOS 17.0。iOS 17.4+ 可用 Apple Translation 框架（推薦）；iOS 17.0-17.3 會 fallback 到 MLKit（速度略慢、翻譯品質稍差）。
+**Q16. 支援哪些 iOS 版本？**
+iOS 18.0 以上。土耳其文翻譯需要 iOS 18.4 以上。
 
-**Q16. 支援 iPad / Apple Watch 嗎？**
-iPad：v1.1 可運作但 UI 還沒針對 iPad 優化，v1.2 會加入 Split View 雙欄對照。
-Apple Watch：目前沒有，v1.2 考慮加上 Watch App + 現場翻譯字幕。
+**Q17. 支援 iPad / Apple Watch 嗎？**
+App 只針對 iPhone 設計，沒有 iPad 專用版面，也沒有 Apple Watch 版。
 
-**Q17. 翻譯品質比 Google / DeepL 差？**
-可能是。Apple Translation 框架為日常溝通調校，不是文學級翻譯。需要高精準度時建議用 DeepL / Google。這個 App 定位是旅行、訊息、菜單、快速查詢 — 這類場景 Apple Translation 表現夠好、且不犧牲隱私。
-
-**Q18. 我的 iPhone 電量會被吃很兇嗎？**
-不會。所有模型都是 Apple 針對 Neural Engine 優化過的。翻譯 1000 字大約消耗 0.5-1% 電量。OCR 單張圖片約 0.1%。
+**Q18. 翻譯品質比 Google / DeepL 差嗎？**
+可能。這個 App 使用 Apple 的系統翻譯，適合旅遊、訊息、菜單等日常場景；需要高精準度的專業文件，建議搭配人工校對或其他工具。
 
 ---
 
 ### 🛠 故障排除
 
-**Q19. 開 App 的時候語音辨識說不支援？**
-有少數舊機種（iPhone 11 以前）on-device speech 支援不完整。App 會提示切換為雲端辨識 — 但為了保護隱私，我們直接停用該模式。解法：換台支援的機種，或升級 iOS。
-
-**Q20. 拍照翻譯找不到字？**
-確認光線充足、字清楚、iPhone 鏡頭乾淨。如果字是手寫、斜體、或深色底淺色字，Vision 可能漏掉。建議先用手機相機拍張清楚的照片，再進來 App 匯入。
-
-**Q21. 翻譯結果停住/卡住？**
-- 關閉飛航模式（首次載入語言包需要網路）
-- iOS 設定 → 一般 → 語言與地區 → 翻譯語言 → 下載對應語言
+**Q19. 翻譯卡住或沒有結果？**
+- 第一次使用某個語言需要網路下載語言包，請先連線下載
+- 到 iPhone「設定 → App → 翻譯」確認語言已下載
 - 重新啟動 App
-- 還是不行？發 issue 到 [GitHub](https://github.com/mina0717/offline-translator-ios/issues)
+- 還是不行？到 [GitHub Issues](https://github.com/mina0717/offline-translator-ios/issues) 回報（1.5.0 起也可從 App「設定」寄 Email）
 
-**Q22. 詞彙本的收藏不見了？**
-v1.1 修掉了一個 race condition bug。如果你是從 v1.0 升上來，重啟 App 一次即可。未來會加 iCloud 同步（v1.2 目標）。
+**Q20. 提示「不支援語音辨識」？**
+該語言在你的 iPhone 上可能沒有裝置端辨識（見 Q5）。換一種語言，或升級 iOS 試試。
 
 ---
 
 ### 💻 開發者相關
 
-**Q23. 開源了嗎？**
-是。MIT 授權。https://github.com/mina0717/offline-translator-ios
+**Q21. 開源了嗎？**
+原始碼公開在 GitHub：https://github.com/mina0717/offline-translator-ios 。目前 repo 尚未附上開源授權條款，因此請先聯絡開發者再轉用程式碼。
 
-**Q24. 為什麼開源？**
-這樣你不用「相信我」。你可以自己看 code 確認沒有任何資料被偷偷送出去。這是「隱私是真的」的最誠實證明。
-
-**Q25. 可以 fork / 自己編一個版本嗎？**
-當然。MIT 授權。唯一要求是保留授權聲明。如果你做得更好，歡迎回來 PR。
-
-**Q26. 想贊助你？**
-謝謝，但請不要。我刻意不放贊助按鈕 — 這個 App 做給自己用、順便給朋友用。如果想支持，請：
-- ⭐ 在 GitHub 按個 star
-- 在 App Store 留個評價
-- 跟一個朋友推薦
-
-這三件事對我比金錢有意義。
+**Q22. 想支持這個 App？**
+App 內沒有贊助或付費功能。如果覺得好用，歡迎在 App Store 留個評價、在 GitHub 按星，或推薦給朋友。
 
 ---
 
 ## 🇬🇧 English
 
+> Live on the App Store: **1.3.0**. **1.5.0 is in review** and will be released automatically once approved; items marked "(1.5.0)" are not available until then.
+
 ### 🔐 Privacy
 
-**Q1. Is it really 100% offline?**
-Yes. Translation, speech recognition, and OCR all run locally on your iPhone. On first use, Apple Translation downloads a ~40MB language pack; after that, no network. Turn on airplane mode and verify — the app still works.
+**Q1. Is it really offline?**
+Translation runs on your iPhone through Apple's Translation framework. The first time you use a language, iOS downloads a language pack (this needs a network connection and is handled by the system). After that, translation and the on-device text recognition used by the camera need no network — airplane mode works.
 
 **Q2. Do you collect any usage data?**
-Zero. Open `PrivacyInfo.xcprivacy` and you'll see `NSPrivacyCollectedDataTypes` is an empty array and `NSPrivacyTracking` is false. The code is MIT-licensed; search for `URLSession` yourself to confirm there are zero network calls.
+No. The privacy manifest (`PrivacyInfo.xcprivacy`) declares no tracking (`NSPrivacyTracking` = false) and no collected data types (`NSPrivacyCollectedDataTypes` is empty). The source is public on GitHub, and the code contains no `URLSession` or other network requests.
 
-**Q3. What about crash reporting or analytics SDKs?**
-None. No Firebase, Crashlytics, Mixpanel, or Amplitude. Intentionally omitted, because adding any of them would break the "privacy is real" claim.
+**Q3. Any analytics or crash-reporting SDKs?**
+None — no Firebase, Crashlytics, Mixpanel, Amplitude, ad SDKs or other third-party packages.
 
-**Q4. The first-time language pack download — doesn't that count as network?**
-That's iOS system-level, handled by Apple. Manage it under Settings → General → Language & Region → Translation Languages. Once downloaded, never needed again. The app itself never uploads your input.
+**Q4. The language pack download — doesn't that count as network use?**
+Yes, but it's an iOS system download handled by Apple; the app never uploads what you type or say. Size varies by language (about 80 MB and up). Manage languages in Settings → Apps → Translate.
+
+**Q5. Is speech recognition offline too?**
+The app asks for on-device recognition, but availability depends on your iPhone and the language:
+- **Hands-free modes** (hands-free conversation, and hands-free listening in 1.5.0): if on-device recognition isn't available for the language, the mode simply doesn't start — it never falls back to the cloud.
+- **Hold to speak**: on-device recognition is preferred; if your iPhone has none for that language, iOS may use Apple's speech recognition service (which needs a network).
 
 ---
 
 ### 📱 Using the app
 
-**Q5. Which languages are supported?**
-v1.1 primary: Traditional Chinese ↔ English. Apple Translation also supports 20+ languages (Japanese, Korean, Spanish, French, German, Italian, Portuguese, Russian, Arabic, Thai, Vietnamese, Indonesian, Simplified Chinese, etc.) on iOS 17.4+.
+**Q6. Which languages?**
+14, any pair (182 directions): Traditional Chinese, English, Japanese, Korean, German, French, Spanish, Thai, Vietnamese, Portuguese, Italian, Indonesian, Dutch, Turkish (Turkish needs iOS 18.4+).
 
-**Q6. What's in the 170K-word dictionary?**
-A curated merge of several open-source English-Chinese dictionaries, cleaned and loaded into Core Data. Each entry includes POS tags, Chinese glosses, and example sentences. Lookups < 50ms.
+**Q7. What translation modes are there?**
+- **Text** — type to translate; save results to your vocabulary notebook.
+- **Voice** — hold to speak, release to translate.
+- **Conversation** — lay the phone flat between two people; the split screen puts the top half upside down for the other person.
+- **Camera** — point at text and the translation is overlaid on the original. (1.3.0 has "Photo translation" from camera or library; 1.5.0 merges them into one camera mode with live overlay, a shutter for single shots, and photo-library import.)
+- **Hands-free listening** (1.5.0) — no button to hold; the app listens to the other person and shows the translation on screen.
 
-**Q7. How does photo translation work?**
-Point your camera at text → Apple Vision detects text regions → Apple Translation translates → overlay appears. All on-device.
-
-**Q8. What's "hold to speak"?**
-Long-press the mic → speak → release. Haptic feedback tells you when recording starts and ends. Uses `SFSpeechRecognizer` with `.requiresOnDeviceRecognition = true`.
+**Q8. Camera can't find the text?**
+Use good light, clear text, a clean lens. Handwriting, italics and low-contrast text may be missed — try the shutter for a single shot, or take a clear photo first and import it.
 
 **Q9. Can I export my vocabulary notebook?**
-Yes. Vocabulary → Export → CSV → share sheet. CSV includes source, translation, save date, category.
+Not currently. The notebook is an in-app list of saved translations.
 
-**Q10. How do I use the Siri shortcut?**
-Copy text → say "Hey Siri, translate clipboard" → app opens with translation. First-time setup: Settings → Siri & Search → Offline Translator → allow.
+**Q10. Siri shortcuts?**
+Two shortcuts: "Translate text" and "Translate clipboard" — find them in the Shortcuts app, or ask Siri, e.g. "Translate clipboard with 離線翻譯".
 
-**Q11. How does the Share Extension work?**
-Select text in Safari/Notes/Messages → Share → Offline Translator → translation appears in the share sheet.
+**Q11. Share Extension?**
+Select text in Safari, Notes, etc. → Share → 離線翻譯.
+
+**Q12. Can the app open straight into my favorite mode?** (1.5.0)
+Yes. In Settings, under "On Launch", pick a feature for "Open on launch" — or long-press a tile on the home screen and choose "Open on launch". Back still returns to the home screen. To undo, set it to "Home screen" or long-press and choose "Stop opening on launch".
+
+**Q13. Can I switch the interface to English?**
+Yes — Settings → Language: System default / 繁體中文 / English. It applies immediately, no restart.
 
 ---
 
-### 💰 Pricing & business model
+### 💰 Pricing
 
-**Q12. Why is it completely free?**
-Because there are no costs. No servers, no analytics, no subscription backend — translation runs on your iPhone. The only cost is my time, and I donate it freely.
+**Q14. Does it cost anything?** Free. No ads, no in-app purchases, no account.
 
-**Q13. Will it ever become a subscription?**
-No. I've committed to keeping v1.x free forever with no ads. If I ever need to monetize, it'll be a separate Pro app — existing versions won't change.
-
-**Q14. Any in-app purchases?**
-None. IAP = 0, ads = 0, subscriptions = 0, sign-in screens = 0.
+**Q15. Why is it free?** Translation runs on your phone, so there's no server to maintain.
 
 ---
 
 ### 🔧 Technical
 
-**Q15. Which iOS versions are supported?**
-iOS 17.0 minimum. iOS 17.4+ uses Apple Translation framework (recommended). iOS 17.0-17.3 falls back to MLKit (slower, slightly lower quality).
+**Q16. Which iOS versions?** iOS 18.0 or later (Turkish needs 18.4+).
 
-**Q16. iPad / Apple Watch support?**
-iPad: works in v1.1, no tablet-specific UI yet; v1.2 will add Split View dual-column. Apple Watch: not yet; v1.2 will consider adding a Watch app with live caption translation.
+**Q17. iPad / Apple Watch?** The app is designed for iPhone only; there's no iPad layout and no Apple Watch app.
 
-**Q17. Is translation quality worse than Google/DeepL?**
-Possibly. Apple Translation is tuned for everyday communication, not literary translation. For high-precision work, use DeepL/Google. This app is built for travel, messages, menus, quick lookups — and for those, Apple Translation is plenty good *without* the privacy cost.
-
-**Q18. Will it drain my battery?**
-No. All models are optimized for Apple Neural Engine. Translating 1000 characters uses ~0.5-1% battery. OCR per image: ~0.1%.
+**Q18. Is quality worse than Google/DeepL?** Possibly. It uses Apple's system translation, which suits travel, messages and menus. For professional documents, add human review or another tool.
 
 ---
 
 ### 🛠 Troubleshooting
 
-**Q19. "Speech recognition not supported on this device"?**
-Some older devices (pre-iPhone 11) have incomplete on-device speech support. To protect privacy, we disable cloud fallback. Fix: use a supported device or upgrade iOS.
+**Q19. Translation hangs or returns nothing?**
+- The first use of a language needs a network connection to download its language pack
+- Check Settings → Apps → Translate to confirm the language is downloaded
+- Restart the app
+- Still broken? Open an issue on [GitHub](https://github.com/mina0717/offline-translator-ios/issues) (from 1.5.0 you can also email feedback from the app's Settings)
 
-**Q20. Photo OCR can't find text?**
-Ensure good lighting, clear text, clean lens. Handwriting, italics, or low-contrast text may fail. Tip: take a clear photo first, then import.
-
-**Q21. Translation hangs?**
-- Enable network once to download language pack (Settings → General → Language & Region → Translation Languages)
-- Restart app
-- Still broken? File an issue: [GitHub](https://github.com/mina0717/offline-translator-ios/issues)
-
-**Q22. My saved vocabulary disappeared?**
-v1.1 fixed a race condition bug. If you upgraded from v1.0, restart once. iCloud sync coming in v1.2.
+**Q20. "Speech recognition not supported"?**
+That language may lack on-device recognition on your iPhone (see Q5). Try another language or update iOS.
 
 ---
 
 ### 💻 For developers
 
-**Q23. Open source?**
-Yes. MIT license. https://github.com/mina0717/offline-translator-ios
+**Q21. Open source?** The source is public at https://github.com/mina0717/offline-translator-ios . The repo doesn't include an open-source license yet, so please contact the developer before reusing the code.
 
-**Q24. Why open source?**
-So you don't have to trust me — read the code and confirm nothing leaves your phone.
-
-**Q25. Can I fork it?**
-Of course. MIT. Just keep the license. If you improve it, please PR back.
-
-**Q26. Want to sponsor you?**
-Please don't. I intentionally omitted the sponsor button. Instead:
-- ⭐ Star on GitHub
-- App Store review
-- Tell one friend
-
-Those three mean more to me than money.
+**Q22. Want to support the app?** There is no sponsorship or paid feature in the app. A review on the App Store, a star on GitHub, or telling a friend all help.
 
 ---
 
-**Still have questions?** → [@mina0717](https://twitter.com/mina0717) · [mina0717@proton.me](mailto:mina0717@proton.me)
-
-Response time usually < 24 hours.
-
-2026-04-22 · CC-BY 4.0 · Feel free to copy, translate, and share.
+最後更新 2026-10-15 · @mina0717
