@@ -274,7 +274,6 @@
 "按下方按鈕開始聆聽" = "Tap below to start listening";
 "手不用一直按著。對方講完一句，譯文就會自動出現在這裡。" = "No need to hold anything. When they finish a sentence, the translation appears here automatically.";
 "聆聽中，請對方開始說話" = "Listening — they can start speaking";
-"翻譯中…" = "Translating...";
 "handsfree.line.translate_failed" = "Translation failed for this line";
 
 // MARK: - v1.5.0 Feedback
@@ -310,3 +309,16 @@
 // MARK: - v1.5.0 Settings section
 "settings.community.section_header" = "Feedback";
 "settings.community.footer" = "Questions or ideas are always welcome.";
+
+// MARK: - v1.5.0 Default launch mode
+"launch.mode.home" = "Home screen";
+"settings.launch.section_header" = "On Launch";
+"settings.launch.title" = "Open on launch";
+"settings.launch.footer" = "Next time you open the app, it goes straight to this feature. Tap Back to return to the home screen. You can also long-press any feature on the home screen to set it.";
+"launch.action.set" = "Open on launch";
+"launch.action.clear" = "Stop opening on launch";
+"launch.badge.accessibility" = "Opens on launch";
+
+// Backfill of a pre-existing gap: the home "Conversation" tile showed Chinese in the English UI since v1.3.0
+"雙向對話" = "Conversation";
+"面對面互譯" = "Face-to-face";

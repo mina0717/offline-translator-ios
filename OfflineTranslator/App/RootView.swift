@@ -18,7 +18,30 @@ struct RootView: View {
     @StateObject private var packBootstrap = LanguagePackBootstrap()
 
     /// NavigationStack 的 path — 由我們自己管，避免 intent 重複 push 造成疊層。
-    @State private var path = NavigationPath()
+    @State private var path: NavigationPath
+
+    init() {
+        _path = State(initialValue: Self.launchPath())
+    }
+
+    /// v1.5.0：冷啟動時的初始導覽堆疊 —— 使用者若指定了「預設翻譯模式」，
+    /// 就直接從那個畫面開始（主畫面仍在下面，按返回就回得去）。
+    ///
+    /// 為什麼放在 `@State` 的初始值，而不是 `onAppear` 之後再 push：
+    /// - 冷啟動直接顯示目標畫面，不會先閃一下主畫面再滑進去
+    /// - 避開「導覽堆疊尚未就緒就 push」的時序問題
+    /// - `@State` 的初始值只在 view 第一次建立時採用，所以天然只套用一次：
+    ///   從背景回到前景、使用者在設定頁改選項，都不會被硬拉到別的畫面
+    ///
+    /// Siri / 捷徑的優先權：若這次是由 App Intent 啟動，`drainQueue()` 會先把
+    /// `path` 整個重設再導向翻譯頁，所以 Intent 一定贏過預設畫面。
+    private static func launchPath() -> NavigationPath {
+        var path = NavigationPath()
+        if let destination = LaunchMode.current.destination {
+            path.append(destination)
+        }
+        return path
+    }
 
     var body: some View {
         ZStack {

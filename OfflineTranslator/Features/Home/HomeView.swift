@@ -126,6 +126,17 @@ private struct HomeTile: View {
     let subtitle: LocalizedStringKey
     let destination: HomeView.Destination
 
+    /// v1.5.0：與設定頁共用同一個 key，兩邊改動會即時同步
+    @AppStorage(LaunchMode.storageKey) private var launchModeRaw: String = LaunchMode.home.rawValue
+
+    /// 這一格對應的啟動模式；語言包這類管理頁面為 nil（不能設成啟動畫面）
+    private var tileMode: LaunchMode? { LaunchMode(destination: destination) }
+
+    private var isLaunchDefault: Bool {
+        guard let tileMode else { return false }
+        return launchModeRaw == tileMode.rawValue
+    }
+
     var body: some View {
         NavigationLink(value: destination) {
             VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
@@ -142,8 +153,40 @@ private struct HomeTile: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(minHeight: 120)
             .glassCard()
+            // v1.5.0：目前的啟動畫面標一個圖釘。
+            // 這同時是這個功能的「可見線索」—— 免持按鈕當初不顯眼、
+            // 民眾不知道能按，這次讓設定結果一眼看得到。
+            .overlay(alignment: .topTrailing) {
+                if isLaunchDefault {
+                    Image(systemName: "pin.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(6)
+                        .background(Circle().fill(Theme.Colors.accent))
+                        .padding(10)
+                        .accessibilityLabel(Text("launch.badge.accessibility"))
+                }
+            }
         }
         .buttonStyle(.plain)
+        // v1.5.0：長按 → 設為（或取消）啟動畫面
+        .contextMenu {
+            if let tileMode {
+                if isLaunchDefault {
+                    Button {
+                        launchModeRaw = LaunchMode.home.rawValue
+                    } label: {
+                        Label("launch.action.clear", systemImage: "pin.slash")
+                    }
+                } else {
+                    Button {
+                        launchModeRaw = tileMode.rawValue
+                    } label: {
+                        Label("launch.action.set", systemImage: "pin")
+                    }
+                }
+            }
+        }
     }
 }
 

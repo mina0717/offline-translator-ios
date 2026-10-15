@@ -274,7 +274,6 @@
 "按下方按鈕開始聆聽" = "按下方按鈕開始聆聽";
 "手不用一直按著。對方講完一句，譯文就會自動出現在這裡。" = "手不用一直按著。對方講完一句，譯文就會自動出現在這裡。";
 "聆聽中，請對方開始說話" = "聆聽中，請對方開始說話";
-"翻譯中…" = "翻譯中…";
 "handsfree.line.translate_failed" = "這句翻譯失敗";
 
 // MARK: - v1.5.0 使用者反饋
@@ -310,3 +309,16 @@
 // MARK: - v1.5.0 設定頁新區塊
 "settings.community.section_header" = "意見回饋";
 "settings.community.footer" = "有任何問題或建議都歡迎告訴我們。";
+
+// MARK: - v1.5.0 預設翻譯模式（啟動畫面）
+"launch.mode.home" = "主畫面";
+"settings.launch.section_header" = "啟動畫面";
+"settings.launch.title" = "開啟 App 時直接進入";
+"settings.launch.footer" = "選好之後，下次開啟 App 會直接進入該功能，按返回仍可回到主畫面。也可以在主畫面長按任一功能，快速設定。";
+"launch.action.set" = "設為啟動畫面";
+"launch.action.clear" = "取消設為啟動畫面";
+"launch.badge.accessibility" = "目前的啟動畫面";
+
+// 既有漏翻補齊：首頁「雙向對話」格子（v1.3.0 起英文介面一直顯示中文）
+"雙向對話" = "雙向對話";
+"面對面互譯" = "面對面互譯";

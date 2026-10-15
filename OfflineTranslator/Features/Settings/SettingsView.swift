@@ -20,6 +20,16 @@ struct SettingsView: View {
     /// v1.5.0：意見回饋 sheet
     @State private var isShowingFeedback = false
 
+    /// v1.5.0：啟動時自動進入的功能（預設主畫面）
+    @AppStorage(LaunchMode.storageKey) private var launchModeRaw: String = LaunchMode.home.rawValue
+    private var launchMode: Binding<LaunchMode> {
+        Binding(
+            // 儲存值若是未知字串（例如日後改過 case 名稱），選單仍落在「主畫面」
+            get: { LaunchMode(rawValue: launchModeRaw) ?? .home },
+            set: { launchModeRaw = $0.rawValue }
+        )
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -41,6 +51,28 @@ struct SettingsView: View {
                     Text("settings.locale.section_header")
                 } footer: {
                     Text("settings.locale.footer")
+                }
+
+                // v1.5.0：預設翻譯模式 —— 開啟 App 時直接進入
+                Section {
+                    Picker(selection: launchMode) {
+                        ForEach(LaunchMode.allCases) { mode in
+                            Label(mode.titleKey, systemImage: mode.iconName)
+                                .tag(mode)
+                        }
+                    } label: {
+                        Label {
+                            Text("settings.launch.title")
+                        } icon: {
+                            Image(systemName: "pin.fill")
+                                .foregroundStyle(Theme.Colors.accent)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                } header: {
+                    Text("settings.launch.section_header")
+                } footer: {
+                    Text("settings.launch.footer")
                 }
 
                 // v13.7：自動下載量級（4 級選擇）
