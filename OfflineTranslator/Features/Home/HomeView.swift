@@ -1,4 +1,5 @@
 import SwiftUI
+import TipKit
 
 /// 首頁：四個主入口（文字 / 語音 / 拍照 / 語言包）+ 歷史紀錄入口。
 ///
@@ -18,6 +19,11 @@ struct HomeView: View {
     /// v1.3.0：Settings sheet 開關
     @State private var isShowingSettings = false
 
+    /// v1.5.0：一次性提示「長按功能格可設為啟動畫面」
+    private let launchModeTip = LaunchModeTip()
+    /// 用來偵測「使用者設定過啟動畫面」（長按或設定頁皆會改到同一個 key）
+    @AppStorage(LaunchMode.storageKey) private var launchModeRaw: String = LaunchMode.home.rawValue
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
@@ -30,6 +36,9 @@ struct HomeView: View {
                 Text("不用網路也能溝通")
                     .font(Theme.Font.body)
                     .foregroundStyle(Theme.Colors.textSecondary)
+
+                // v1.5.0：一次性新手提示（按 X／設定過／主畫面出現滿 3 次就不再顯示）
+                TipView(launchModeTip)
 
                 LazyVGrid(
                     columns: [GridItem(.flexible(), spacing: Theme.Spacing.md),
@@ -101,6 +110,14 @@ struct HomeView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        // v1.5.0：累計主畫面出現次數，給 LaunchModeTip 的「最多顯示 3 次」規則用
+        .onAppear { LaunchModeTip.homeVisitCount += 1 }
+        // v1.5.0：只要選了非「主畫面」的啟動畫面，提示就功成身退
+        .onChange(of: launchModeRaw) { _, newValue in
+            if newValue != LaunchMode.home.rawValue {
+                LaunchModeTip.hasSetLaunchMode = true
+            }
+        }
         // v1.3.0：右上角設定齒輪
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {

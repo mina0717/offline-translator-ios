@@ -90,6 +90,47 @@ struct LanguageSwitchTip: Tip {
     }
 }
 
+// MARK: - 4. 預設翻譯模式（主畫面長按功能格）
+
+/// v1.5.0：告訴使用者「長按功能格可以設為啟動畫面」。
+///
+/// 為什麼需要它：長按手勢本身沒有任何視覺線索，免持按鈕當初就是因為
+/// 「不顯眼、民眾不知道能按」而被反映。這個提示補上那個線索。
+///
+/// **一次性**的三道出口，任一個成立就不再出現，不會變成關不掉的橫幅：
+/// 1. 使用者按提示右上角的 X（TipKit 內建）
+/// 2. 使用者已經設定過啟動畫面（不論從長按或設定頁）→ `hasSetLaunchMode`
+/// 3. 主畫面累計出現超過 3 次還沒理它 → `homeVisitCount`
+///    （只用專案既有就在用的 `@Parameter` + `#Rule`，不引入沒用過的 TipKit API）
+struct LaunchModeTip: Tip {
+    /// 使用者設定過任何一個啟動畫面後設為 true
+    @Parameter
+    static var hasSetLaunchMode: Bool = false
+
+    /// 主畫面累計出現次數（由 HomeView.onAppear 遞增，TipKit 會持久化）
+    @Parameter
+    static var homeVisitCount: Int = 0
+
+    var title: Text {
+        Text("tip.launch_mode.title")
+    }
+
+    var message: Text? {
+        Text("tip.launch_mode.message")
+    }
+
+    var image: Image? {
+        Image(systemName: "pin.fill")
+    }
+
+    var rules: [Rule] {
+        [
+            #Rule(LaunchModeTip.$hasSetLaunchMode) { $0 == false },
+            #Rule(LaunchModeTip.$homeVisitCount) { $0 <= 3 }
+        ]
+    }
+}
+
 // MARK: - 全域設定
 
 enum OnboardingTips {

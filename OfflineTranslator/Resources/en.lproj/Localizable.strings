@@ -322,3 +322,7 @@
 // Backfill of a pre-existing gap: the home "Conversation" tile showed Chinese in the English UI since v1.3.0
 "雙向對話" = "Conversation";
 "面對面互譯" = "Face-to-face";
+
+// MARK: - v1.5.0 Tip: default launch mode
+"tip.launch_mode.title" = "Long-press to set your launch screen";
+"tip.launch_mode.message" = "Long-press any feature and choose Open on launch. Next time, the app opens right there. You can also change it in Settings, top right.";
