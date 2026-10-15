@@ -2,7 +2,7 @@
 
 兩週版 iOS 離線翻譯 App。MVP 範圍：文字翻譯、語音翻譯（按住說話）、拍照翻譯、離線語言包管理、歷史紀錄。
 
-- **平台**：iOS 17.4+ (iPhone only)
+- **平台**：iOS 18.0+ (iPhone only)
 - **語言**：Swift 5.10 / SwiftUI
 - **架構**：SwiftUI + MVVM + Use Case + Repository
 - **翻譯引擎**：Apple Translation framework（離線）
