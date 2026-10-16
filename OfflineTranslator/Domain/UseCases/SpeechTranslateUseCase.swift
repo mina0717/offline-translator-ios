@@ -10,6 +10,9 @@ protocol SpeechTranslateUseCase {
     /// 結束 ASR 並回傳最終辨識結果。
     func stopRecognition() async throws -> String
 
+    /// v1.5.1：該語言能否在「裝置端」辨識（UI 在開始錄音前先檢查，不支援就直接提示）。
+    func isRecognitionSupported(for language: Language) -> Bool
+
     /// 將辨識到的文字翻譯。
     func translate(_ text: String, pair: LanguagePair) async throws -> TranslationResult
 
@@ -36,6 +39,10 @@ struct DefaultSpeechTranslateUseCase: SpeechTranslateUseCase {
 
     func stopRecognition() async throws -> String {
         try await asrService.stopRecognition()
+    }
+
+    func isRecognitionSupported(for language: Language) -> Bool {
+        asrService.isSupported(for: language)
     }
 
     func translate(_ text: String, pair: LanguagePair) async throws -> TranslationResult {

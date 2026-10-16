@@ -113,6 +113,10 @@ final class SpeechTranslationViewModel: ObservableObject {
     /// 長按開始：啟動 ASR 串流
     func startHold() {
         guard phase == .idle || phase == .done else { return }
+        guard useCase.isRecognitionSupported(for: sourceLanguage) else {
+            errorMessage = ASRError.notSupportedOffline(sourceLanguage).errorDescription
+            return
+        }
         errorMessage = nil
         partialTranscript = ""
         finalTranscript = ""

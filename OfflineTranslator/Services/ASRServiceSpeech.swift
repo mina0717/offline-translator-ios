@@ -56,6 +56,7 @@ final class SpeechASRService: ASRService {
 
             Task {
                 do {
+                    try self.preflight(for: language)
                     try await self.requestPermissionsIfNeeded()
                     try self.configureAudioSession()
                     try self.startEngine(for: language)
@@ -97,9 +98,22 @@ final class SpeechASRService: ASRService {
 
     // MARK: - ASRService.isSupported
 
+    /// v1.5.1：必須「可用」且「支援裝置端辨識」才算支援（不再把雲端辨識當作支援）。
     func isSupported(for language: Language) -> Bool {
         let locale = Self.speechLocale(for: language)
-        return SFSpeechRecognizer(locale: locale)?.isAvailable ?? false
+        guard let r = SFSpeechRecognizer(locale: locale) else { return false }
+        return r.isAvailable && r.supportsOnDeviceRecognition
+    }
+
+    /// 開錄音前的檢查：在要權限、動 AudioSession 之前就擋下不支援離線辨識的語言。
+    private func preflight(for language: Language) throws {
+        let locale = Self.speechLocale(for: language)
+        guard let r = SFSpeechRecognizer(locale: locale), r.isAvailable else {
+            throw ASRError.notSupported
+        }
+        guard r.supportsOnDeviceRecognition else {
+            throw ASRError.notSupportedOffline(language)
+        }
     }
 
     // MARK: - Private: setup
@@ -145,16 +159,12 @@ final class SpeechASRService: ASRService {
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
 
-        // **離線要求**：強制 on-device 辨識，避免打到 Apple 雲端
-        // ⚠️ Mac 實測項 #4：若裝置不支援 on-device，改成 false 會讓 MVP 失去「離線」承諾
-        if recognizer.supportsOnDeviceRecognition {
-            request.requiresOnDeviceRecognition = true
-        } else {
-            // 降級：記一筆 warning，讓使用者知道這個 locale 需要網路
-            #if DEBUG
-            print("⚠️ SFSpeechRecognizer on-device 不支援 \(locale.identifier)，將使用雲端")
-            #endif
+        // **離線要求**：一律 on-device 辨識，絕不降級到 Apple 雲端。
+        // v1.5.1：不支援裝置端辨識的語言，在 preflight / 此處就會被擋下，不再默默走雲端。
+        guard recognizer.supportsOnDeviceRecognition else {
+            throw ASRError.notSupportedOffline(language)
         }
+        request.requiresOnDeviceRecognition = true
         self.request = request
 
         // 3. 安裝 tap 到 input node

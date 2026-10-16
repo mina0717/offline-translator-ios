@@ -188,7 +188,7 @@
 
 // MARK: - v1.3.0 hotfix (語言 picker + 下載 UX)
 "交換來源與譯文" = "交換來源與譯文";
-"v1.3.0：支援 7 種語言、42 個翻譯方向" = "v1.3.0：支援 7 種語言、42 個翻譯方向";
+"支援 14 種語言、182 個翻譯方向" = "支援 14 種語言、182 個翻譯方向";
 "💡 在語音 / 對話頁切換語言時，App 會在背景自動預下載對應語言包，下次翻譯就不用再等。" = "💡 在語音 / 對話頁切換語言時，App 會在背景自動預下載對應語言包，下次翻譯就不用再等。";
 "下載：iOS 會跳系統對話框（「允許下載」）。確認後 1-3 分鐘下載完成。" = "下載：iOS 會跳系統對話框（「允許下載」）。確認後 1-3 分鐘下載完成。";
 "刪除：需到「設定 → 一般 → 語言與地區 → 翻譯」手動移除。" = "刪除：需到「設定 → 一般 → 語言與地區 → 翻譯」手動移除。";
@@ -198,9 +198,6 @@
 "下載中…" = "下載中…";
 
 // MARK: - v1.3.0 hotfix #2 (auto-download all language packs)
-"settings.autodownload.section_header" = "語言包";
-"settings.autodownload.title" = "啟動時自動下載缺失語言包";
-"settings.autodownload.footer" = "每次打開 App 時，自動掃描並下載尚未下載的語言包（共 42 個方向）。iOS 會跳系統對話框徵求同意。可在頂部 banner 暫停。";
 "暫停自動下載" = "暫停自動下載";
 
 // MARK: - v13.6 hotfix #3 (7 more languages: es/th/vi/pt/it/id/nl)
@@ -261,7 +258,8 @@
 "handsfree.status.listening" = "聆聽中，請開始說話";
 "handsfree.status.hearing" = "聽到了…";
 "handsfree.error.permission" = "尚未允許麥克風或語音辨識權限，請到設定開啟。";
-"handsfree.error.no_offline_asr" = "%@ 目前不支援離線語音辨識，免持模式無法使用。請改用「按住說話」。";
+"handsfree.error.no_offline_asr" = "%@ 在這支 iPhone 上沒有離線語音辨識，免持模式無法使用。為了保護隱私，App 不會改用雲端辨識。";
+"asr.error.no_offline_asr" = "%@ 在這支 iPhone 上沒有離線語音辨識，語音輸入無法使用。為了保護隱私，App 不會改用雲端辨識。可以改用「文字翻譯」。";
 "handsfree.error.audio_failed" = "麥克風啟動失敗。";
 
 // MARK: - v1.5.0 免持聆聽（主畫面獨立模式）

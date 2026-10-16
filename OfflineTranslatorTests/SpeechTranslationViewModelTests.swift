@@ -41,6 +41,30 @@ final class SpeechTranslationViewModelTests: XCTestCase {
         return (vm, asr, mt, tts)
     }
 
+    // MARK: - v1.5.1：不支援裝置端辨識 → 不錄音、不走雲端
+
+    func test_startHold_unsupportedOffline_showsMessageAndDoesNotRecord() async {
+        let (vm, asr, _, _) = makeVM()
+        asr.supported = false
+        vm.sourceLanguage = .traditionalChinese
+        vm.targetLanguage = .english
+
+        vm.startHold()
+
+        XCTAssertEqual(vm.phase, .idle, "不支援裝置端辨識時不應進入 recording")
+        XCTAssertNotNil(vm.errorMessage)
+        XCTAssertTrue(vm.partialTranscript.isEmpty)
+    }
+
+    func test_startHold_supported_stillRecords() async {
+        let (vm, asr, _, _) = makeVM()
+        asr.supported = true
+
+        vm.startHold()
+
+        XCTAssertEqual(vm.phase, .recording)
+    }
+
     // MARK: - Happy path
 
     func test_startHold_thenRelease_completesWithTranslation() async {

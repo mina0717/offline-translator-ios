@@ -16,6 +16,8 @@ protocol ASRService {
 enum ASRError: LocalizedError {
     case permissionDenied
     case notSupported
+    /// v1.5.1：該語言在這支 iPhone 上沒有「裝置端」語音辨識。為了守住離線承諾，不降級到雲端。
+    case notSupportedOffline(Language)
     case audioEngineFailed(Error)
     case underlying(Error)
 
@@ -23,6 +25,11 @@ enum ASRError: LocalizedError {
         switch self {
         case .permissionDenied:       return "尚未允許麥克風或語音辨識權限，請到設定開啟。"
         case .notSupported:           return "這個語言目前不支援語音辨識。"
+        case .notSupportedOffline(let lang):
+            return String(
+                format: String(localized: "asr.error.no_offline_asr"),
+                lang.displayName
+            )
         case .audioEngineFailed(let e): return "錄音失敗：\(e.localizedDescription)"
         case .underlying(let e):      return e.localizedDescription
         }
