@@ -131,8 +131,8 @@ A：獨立開發者一人，台灣。
 
 ## 📩 Interview requests
 
-<!-- TODO(Mina)：下列聯絡方式沿用舊版文件，未經查證；對外使用前請確認仍有效。 -->
-- **Email**: [mina0717@proton.me](mailto:mina0717@proton.me)
+<!-- TODO(Mina)：Email 已確認為 lb0018575@gmail.com；Twitter／Threads 帳號沿用舊版文件，尚未查證。 -->
+- **Email**: [lb0018575@gmail.com](mailto:lb0018575@gmail.com)
 - **Twitter/X**: [@mina0717](https://twitter.com/mina0717)
 - **Threads**: [@mina0717](https://threads.net/@mina0717)
 - **GitHub**: [mina0717](https://github.com/mina0717)
