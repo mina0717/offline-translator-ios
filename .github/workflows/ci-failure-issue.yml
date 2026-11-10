@@ -1,0 +1,114 @@
+name: CI Failure Issue
+
+# 當「iOS Release (TestFlight)」失敗時，自動開（或更新）一個 GitHub Issue，附上失敗步驟、可能原因與日誌重點；
+# 之後同一個 workflow 成功時，自動留言並關閉該 Issue。
+# 可用「Run workflow」手動測試：輸入某次 run 的 id，會依該次結果開／關 Issue。
+on:
+  workflow_run:
+    workflows: ["iOS Release (TestFlight)"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: '要測試的 workflow run id（會依該次結果開／關 Issue）'
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+concurrency:
+  group: ci-failure-issue
+  cancel-in-progress: false
+
+jobs:
+  report:
+    name: Report CI failure
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    if: github.event_name == 'workflow_dispatch' || contains(fromJSON('["failure","timed_out","success"]'), github.event.workflow_run.conclusion)
+    steps:
+      - name: Open, update or close the failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
+        run: |
+          set -euo pipefail
+          run_json=$(gh api "repos/$REPO/actions/runs/$RUN_ID")
+          name=$(jq -r '.name' <<<"$run_json")
+          conclusion=$(jq -r '.conclusion' <<<"$run_json")
+          url=$(jq -r '.html_url' <<<"$run_json")
+          sha=$(jq -r '.head_sha[0:7]' <<<"$run_json")
+          branch=$(jq -r '.head_branch' <<<"$run_json")
+          event=$(jq -r '.event' <<<"$run_json")
+          number=$(jq -r '.run_number' <<<"$run_json")
+          title="[CI 失敗] $name"
+          label="ci-failure"
+
+          gh label create "$label" --repo "$REPO" --color d73a4a --description "CI 失敗自動通報" 2>/dev/null || true
+          existing=$(gh issue list --repo "$REPO" --label "$label" --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+
+          # 成功：若有未關閉的失敗 Issue，留言並關閉
+          if [ "$conclusion" = "success" ]; then
+            if [ -n "$existing" ]; then
+              gh issue comment "$existing" --repo "$REPO" --body "已恢復正常：[$name #$number]($url)（$branch @ $sha）。自動關閉此 Issue。"
+              gh issue close "$existing" --repo "$REPO" --reason completed
+            fi
+            exit 0
+          fi
+          case "$conclusion" in
+            failure|timed_out) ;;
+            *) echo "conclusion=$conclusion，不處理"; exit 0 ;;
+          esac
+
+          # 失敗：整理失敗位置與日誌
+          failed_steps=$(gh api "repos/$REPO/actions/runs/$RUN_ID/jobs" --paginate --jq '.jobs[] | select(.conclusion=="failure" or .conclusion=="timed_out") | "- Job「\(.name)」→ 步驟「\([.steps[] | select(.conclusion=="failure" or .conclusion=="timed_out") | .name] | join("、"))」"')
+          full=$(gh run view "$RUN_ID" --repo "$REPO" --log-failed 2>&1 | sed -E 's/^[^\t]*\t[^\t]*\t//; s/^[0-9T:.Z-]+ //; s/\x1b\[[0-9;]*m//g' | grep -v -E '^\s*$' | cut -c1-300 || true)
+          # 擷取「失敗的那一步」：從該步驟的 Run 開頭，到第一個 ##[error] 為止（最多 40 行）；找不到就取最後 40 行
+          err_line=$(grep -n -m1 -F '##[error]' <<<"$full" | cut -d: -f1 || true)
+          if [ -n "$err_line" ]; then
+            start=$(head -n "$err_line" <<<"$full" | grep -n -F '##[group]Run' | tail -n 1 | cut -d: -f1 || true)
+            log=$(sed -n "${start:-1},${err_line}p" <<<"$full" | tail -n 40)
+          else
+            log=$(tail -n 40 <<<"$full")
+          fi
+
+          hints=""
+          add_hint() {
+            if grep -q -i -E "$1" <<<"$full"; then
+              hints+="- $2"$'\n'
+            fi
+          }
+          add_hint 'Cannot determine the Apple ID from Bundle ID' 'Apple 後台剛同步完成前就上傳：等約 5 分鐘後，直接重跑同一個 workflow（不要重複推同一個 tag）。'
+          add_hint 'No profiles for|GatherProvisioningInputs|Provisioning profile' '多半是 Apple 開發者協議（PLA）有更新、尚未簽署：到 developer.apple.com 簽署新協議，等約 5 分鐘後重跑。'
+          add_hint 'maximum number of generated|too many Development|Development certificate' 'Development 憑證數量達上限（11）：到 Apple Developer 後台撤銷最舊的 Development 憑證（Distribution Managed 不可動），再重跑。'
+          add_hint '\.swift:[0-9]+:[0-9]+: error' 'Swift 編譯錯誤：看日誌中 error 行所指的檔案與行號。'
+          add_hint 'ITMS-[0-9]+|Validation failed' '上傳或驗證失敗：看日誌中的 ITMS 代碼；常見為版本／建置號重複或 Apple 後台尚未同步。'
+
+          fence='```'
+          {
+            echo "**$name** 在 \`$branch\`（$sha，觸發：$event）失敗。"
+            echo
+            echo "- Run：[#$number]($url)"
+            echo "- 失敗位置："
+            echo "$failed_steps"
+            echo
+            if [ -n "$hints" ]; then
+              echo "### 可能原因（自動比對，僅供參考）"
+              echo "$hints"
+            fi
+            echo "### 失敗步驟的日誌（最多 40 行）"
+            echo "$fence"
+            echo "$log"
+            echo "$fence"
+            echo
+            echo "_此 Issue 由 CI Failure Issue workflow 自動建立；問題恢復後會自動關閉。_"
+          } > body.md
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$REPO" --body-file body.md
+          else
+            gh issue create --repo "$REPO" --title "$title" --label "$label" --body-file body.md
+          fi

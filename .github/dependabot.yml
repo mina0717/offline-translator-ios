@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # GitHub Actions（打包流程用到的 actions/*）：每週一檢查，只會開 PR，不會自動打包
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Taipei
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"
+    labels: ["dependencies"]
