@@ -197,6 +197,10 @@ final class ConversationViewModel: ObservableObject {
     func startHold(speaker: Language) {
         // 若已在錄音、翻譯、朗讀中，忽略
         guard case .idle = phase else { return }
+        guard useCase.isRecognitionSupported(for: speaker) else {
+            errorMessage = ASRError.notSupportedOffline(speaker).errorDescription
+            return
+        }
 
         // 計算 listener
         let listener: Language = (speaker == sideALanguage) ? sideBLanguage : sideALanguage

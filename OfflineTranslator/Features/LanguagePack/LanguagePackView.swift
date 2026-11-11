@@ -100,7 +100,7 @@ struct LanguagePackView: View {
 
         private var footer: some View {
             VStack(spacing: Theme.Spacing.xs) {
-                Text("v1.3.0：支援 7 種語言、42 個翻譯方向")
+                Text("支援 14 種語言、182 個翻譯方向")
                     .font(Theme.Font.caption)
                     .foregroundStyle(Theme.Colors.textSecondary)
                 Text("💡 在語音 / 對話頁切換語言時，App 會在背景自動預下載對應語言包，下次翻譯就不用再等。")
