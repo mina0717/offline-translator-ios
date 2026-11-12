@@ -1,11 +1,11 @@
 # 常見問題 FAQ — 離線翻譯 Offline Translator
 
-最後更新：2026-10-15 · @mina0717
+最後更新：2026-11-12 · @mina0717
 
 雙語 FAQ（繁中 + English）。本文件已依 App 實際功能重寫；舊版（v1.1 時期草稿）有多處與事實不符，已移除。
 
-> App Store 目前上架版本為 **1.3.0**；**1.5.0 已送審，通過後自動上線**。標註「（1.5.0）」的功能在上線前尚未提供。
-> 意見回饋：1.5.0 起可在 App「設定」內以 Email 回報；在此之前請到 [GitHub Issues](https://github.com/mina0717/offline-translator-ios/issues)。
+> App Store 目前上架版本為 **1.5.1**（2026-11-11 上線）。
+> 意見回饋：可在 App「設定」內以 Email 回報，也可以到 [GitHub Issues](https://github.com/mina0717/offline-translator-ios/issues)。
 
 ---
 
@@ -26,9 +26,9 @@
 算，但那是 iOS 系統級的下載，由 Apple 處理，App 不會上傳你輸入的內容。大小依語言而異（約 80 MB 起）。下載後即可離線使用；可在 iPhone「設定 → App → 翻譯」管理語言。
 
 **Q5. 語音辨識也是離線嗎？**
-App 會優先使用「裝置端辨識」，但是否可用取決於你的 iPhone 與該語言：
-- **免持模式**（雙向對話的免持、1.5.0 的免持聆聽）：若該語言沒有裝置端辨識，App 不會啟動，不會偷偷改用雲端。
-- **按住說話**：優先使用裝置端辨識；如果你的 iPhone 對該語言沒有裝置端辨識，iOS 可能改用 Apple 的語音辨識服務（需要網路）。
+App 只使用「裝置端辨識」，但是否可用取決於你的 iPhone 與該語言：
+- **免持模式**（雙向對話的免持、免持聆聽）：若該語言沒有裝置端辨識，App 不會啟動，不會改用雲端。
+- **按住說話**（語音翻譯、雙向對話）：同樣只使用裝置端辨識；如果你的 iPhone 對該語言沒有，App 會顯示說明、不會錄音，也不會改用雲端（1.5.1 起；更早的版本可能改用 Apple 的語音辨識服務）。
 
 ---
 
@@ -42,7 +42,7 @@ App 會優先使用「裝置端辨識」，但是否可用取決於你的 iPhone
 - **語音翻譯**：按住說話，放開即譯。
 - **雙向對話**：手機平放兩人之間，畫面上下分割，上半部旋轉 180° 給對方看。
 - **相機翻譯**：鏡頭對準文字，譯文疊在原文位置。（1.3.0 為「拍照翻譯」，從相機或相簿取圖；1.5.0 合併為一個相機模式，可即時疊字、按快門拍單張、從相簿選圖。）
-- **免持聆聽**（1.5.0）：不用按住按鈕，App 聽對方說話，把譯文顯示在螢幕上。
+- **免持聆聽**：不用按住按鈕，App 聽對方說話，把譯文顯示在螢幕上。
 
 **Q8. 相機翻譯找不到字？**
 確認光線充足、字體清楚、鏡頭乾淨。手寫字、斜體、低對比的字可能辨識不到；可以改用拍照（快門）取單張，或先用相機拍一張清楚的照片再從相簿匯入。
@@ -56,7 +56,7 @@ App 提供兩個捷徑：「翻譯文字」和「翻譯剪貼簿」，可在「�
 **Q11. 分享擴充（Share Extension）怎麼用？**
 在 Safari、備忘錄等 App 選取文字 → 點「分享」→ 選「離線翻譯」。
 
-**Q12. 可以設定開啟 App 就直接進入某個功能嗎？**（1.5.0）
+**Q12. 可以設定開啟 App 就直接進入某個功能嗎？**
 可以。在 App「設定」的「啟動畫面」→「開啟 App 時直接進入」選一個功能，或在主畫面長按某個功能卡片選「設為啟動畫面」。設定後，開啟 App 會直接進入該功能，按返回仍可回到主畫面；在設定中改回「主畫面」，或長按選「取消設為啟動畫面」即可還原。
 
 **Q13. 介面可以改成英文嗎？**
@@ -112,7 +112,7 @@ App 內沒有贊助或付費功能。如果覺得好用，歡迎在 App Store �
 
 ## 🇬🇧 English
 
-> Live on the App Store: **1.3.0**. **1.5.0 is in review** and will be released automatically once approved; items marked "(1.5.0)" are not available until then.
+> Live on the App Store: **1.5.1** (released 2026-11-11).
 
 ### 🔐 Privacy
 
@@ -129,9 +129,9 @@ None — no Firebase, Crashlytics, Mixpanel, Amplitude, ad SDKs or other third-p
 Yes, but it's an iOS system download handled by Apple; the app never uploads what you type or say. Size varies by language (about 80 MB and up). Manage languages in Settings → Apps → Translate.
 
 **Q5. Is speech recognition offline too?**
-The app asks for on-device recognition, but availability depends on your iPhone and the language:
-- **Hands-free modes** (hands-free conversation, and hands-free listening in 1.5.0): if on-device recognition isn't available for the language, the mode simply doesn't start — it never falls back to the cloud.
-- **Hold to speak**: on-device recognition is preferred; if your iPhone has none for that language, iOS may use Apple's speech recognition service (which needs a network).
+The app uses on-device recognition only, and availability depends on your iPhone and the language:
+- **Hands-free modes** (hands-free conversation and hands-free listening): if on-device recognition isn't available for the language, the mode simply doesn't start — it never falls back to the cloud.
+- **Hold to speak** (Speech and Conversation): on-device only as well. If your iPhone has none for that language, the app shows a message and does not record or fall back to the cloud (since 1.5.1; earlier versions could use Apple's speech recognition service).
 
 ---
 
@@ -145,7 +145,7 @@ The app asks for on-device recognition, but availability depends on your iPhone 
 - **Voice** — hold to speak, release to translate.
 - **Conversation** — lay the phone flat between two people; the split screen puts the top half upside down for the other person.
 - **Camera** — point at text and the translation is overlaid on the original. (1.3.0 has "Photo translation" from camera or library; 1.5.0 merges them into one camera mode with live overlay, a shutter for single shots, and photo-library import.)
-- **Hands-free listening** (1.5.0) — no button to hold; the app listens to the other person and shows the translation on screen.
+- **Hands-free listening** — no button to hold; the app listens to the other person and shows the translation on screen.
 
 **Q8. Camera can't find the text?**
 Use good light, clear text, a clean lens. Handwriting, italics and low-contrast text may be missed — try the shutter for a single shot, or take a clear photo first and import it.
@@ -159,7 +159,7 @@ Two shortcuts: "Translate text" and "Translate clipboard" — find them in the S
 **Q11. Share Extension?**
 Select text in Safari, Notes, etc. → Share → 離線翻譯.
 
-**Q12. Can the app open straight into my favorite mode?** (1.5.0)
+**Q12. Can the app open straight into my favorite mode?**
 Yes. In Settings, under "On Launch", pick a feature for "Open on launch" — or long-press a tile on the home screen and choose "Open on launch". Back still returns to the home screen. To undo, set it to "Home screen" or long-press and choose "Stop opening on launch".
 
 **Q13. Can I switch the interface to English?**
@@ -206,4 +206,4 @@ That language may lack on-device recognition on your iPhone (see Q5). Try anothe
 
 ---
 
-最後更新 2026-10-15 · @mina0717
+最後更新 2026-11-12 · @mina0717

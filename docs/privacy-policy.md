@@ -1,6 +1,6 @@
 # 離線翻譯 — 隱私政策
 
-**最後更新：2026-04-29**
+**最後更新：2026-11-12**
 
 「離線翻譯」（以下簡稱「本 App」）是一款完全離線運作的翻譯工具。我們重視你的隱私，本政策說明本 App 如何處理你的資料。
 
@@ -24,7 +24,7 @@
 | 服務 | 用途 | 資料流向 |
 |---|---|---|
 | Apple Translation Framework | 文字翻譯 | 完全本機 |
-| Apple Speech Recognition | 語音轉文字（可選 on-device） | 預設本機；可關閉雲端 |
+| Apple Speech Recognition | 語音轉文字（僅限 on-device） | 只在裝置端；該語言不支援時不會改用雲端 |
 | Apple Vision Framework | 圖片文字辨識（OCR） | 完全本機 |
 | AVSpeechSynthesizer | 文字轉語音（朗讀譯文） | 完全本機 |
 | SwiftData | 翻譯歷史 / 收藏紀錄 | 只在本機 |
@@ -104,7 +104,7 @@ All such data **stays on your iPhone**. The developer cannot access it.
 
 The App uses Apple system frameworks that process all data on your device:
 - Apple Translation Framework (text translation)
-- Apple Speech Recognition (speech-to-text, on-device option)
+- Apple Speech Recognition (speech-to-text, on-device only)
 - Apple Vision Framework (OCR)
 - AVSpeechSynthesizer (text-to-speech)
 - SwiftData (local history storage)

@@ -81,7 +81,7 @@
   <header>
     <h1>Privacy Policy / 隱私權政策</h1>
     <div class="sub">
-      <strong>Effective / 生效：</strong> 2026-04-21 · <strong>Updated / 更新：</strong> 2026-04-21
+      <strong>Effective / 生效：</strong> 2026-04-21 · <strong>Updated / 更新：</strong> 2026-11-12
     </div>
     <div class="lang-switch" role="tablist">
       <button id="btn-en" class="active" onclick="setLang('en')">English</button>
@@ -92,7 +92,7 @@
   <!-- English -->
   <section id="lang-en" class="lang active">
     <h2>1. Summary</h2>
-    <p>Offline Translator ("the App", "we") is an <strong>on-device translation app</strong>. We do <strong>not</strong> operate any server, run any analytics, show any advertising, or share any data with third parties. Everything happens on your device.</p>
+    <p>Offline Translator ("the App", "we") is an <strong>on-device translation app</strong>. We do <strong>not</strong> operate any server, run any analytics, show any advertising, or share any data with third parties. Everything happens on your device. The only time anything leaves it is when you choose to email us feedback (see Section 8).</p>
 
     <h2>2. Data We Do NOT Collect</h2>
     <ul>
@@ -103,15 +103,15 @@
       <li>Analytics, crash reports, or telemetry</li>
       <li>Advertising data</li>
     </ul>
-    <p><strong>We have no backend server.</strong> There is no account to sign up for. There is no login.</p>
+    <p><strong>We have no backend server.</strong> There is no account to sign up for. There is no login. (The only exception is feedback you choose to email us — see Section 8.)</p>
 
     <h2>3. Permissions the App Requests</h2>
     <table>
       <thead><tr><th>Permission</th><th>Purpose</th><th>Data Flow</th></tr></thead>
       <tbody>
-        <tr><td><strong>Microphone</strong></td><td>Record your voice for speech translation</td><td>Processed on-device by Apple's Speech framework. Nothing is uploaded.</td></tr>
-        <tr><td><strong>Speech Recognition</strong></td><td>Convert speech to text</td><td>Processed on-device when possible. If iOS falls back to Apple's server-side recognition, Apple's own privacy policy applies — we never see the audio or transcript.</td></tr>
-        <tr><td><strong>Camera</strong></td><td>Capture an image for photo translation (OCR)</td><td>Processed on-device by Apple's Vision framework. Not saved outside temporary memory. Not transmitted.</td></tr>
+        <tr><td><strong>Microphone</strong></td><td>Record your voice for speech translation, conversation and hands-free listening</td><td>Processed on-device by Apple's Speech framework. Nothing is uploaded.</td></tr>
+        <tr><td><strong>Speech Recognition</strong></td><td>Convert speech to text</td><td>Processed <strong>on-device only</strong>. If a language has no on-device speech recognition on your iPhone, the App shows a message and does not record or send any audio to Apple's servers.</td></tr>
+        <tr><td><strong>Camera</strong></td><td>Capture an image for camera translation (live overlay or a single shot) using OCR</td><td>Processed on-device by Apple's Vision framework. Not saved outside temporary memory. Not transmitted.</td></tr>
         <tr><td><strong>Photo Library</strong></td><td>Let you pick an image for OCR</td><td>Only the single image you explicitly select is read. We do not scan your library.</td></tr>
       </tbody>
     </table>
@@ -122,7 +122,7 @@
     <ul>
       <li><strong>Saved vocabulary entries</strong> — words or phrases you tap "Save" on</li>
       <li><strong>Translation history</strong> — recent translations</li>
-      <li><strong>Language preferences</strong> — source / target / UI language</li>
+      <li><strong>Preferences</strong> — source / target / UI language, and the screen the App opens on launch</li>
     </ul>
     <p>This data never leaves your device. It is included in your regular iCloud device backup if enabled (encrypted and managed by Apple). To delete all of this data, uninstall the App.</p>
 
@@ -135,19 +135,22 @@
     <h2>7. Siri and App Intents</h2>
     <p>If you use Siri to invoke "TranslateText" or "TranslateClipboard" shortcuts, the text is processed on-device by the Translation framework. Siri itself is governed by Apple's privacy policy.</p>
 
-    <h2>8. Third-Party Services</h2>
-    <p><strong>None.</strong> The App integrates zero third-party SDKs, analytics libraries, advertising networks, crash reporters, or tracking tools. The only frameworks used are Apple's own: Translation, Speech, Vision, AVFoundation, SwiftData, TipKit, App Intents.</p>
+    <h2>8. Send Feedback (optional)</h2>
+    <p>Settings → Send Feedback opens the iOS Mail composer (using your own email account) with a draft addressed to the developer. The draft contains your message, the App version and build number, the device type (for example "iPhone"), your iOS version, and any screenshots or videos you choose to attach. <strong>Nothing is sent unless you tap Send in your mail app</strong>; the App itself has no server and never receives it. If Mail is not set up, the App can copy the address and draft to your clipboard instead. We use what you send only to reply to you and to improve the App. If you never use this feature, nothing leaves your device.</p>
 
-    <h2>9. Children's Privacy</h2>
+    <h2>9. Third-Party Services</h2>
+    <p><strong>None.</strong> The App integrates zero third-party SDKs, analytics libraries, advertising networks, crash reporters, or tracking tools. The only frameworks used are Apple's own: Translation, Speech, Vision, AVFoundation, SwiftData, TipKit, App Intents, PhotosUI, MessageUI.</p>
+
+    <h2>10. Children's Privacy</h2>
     <p>The App does not target children under 13 and does not knowingly collect any data from anyone. It is safe for use by all ages. The App Store age rating is 4+.</p>
 
-    <h2>10. Your Rights</h2>
+    <h2>11. Your Rights</h2>
     <p>Because we do not collect any personal data, traditional data-subject requests (access, deletion, export, rectification) are not applicable — there is nothing on our side to access, delete, export, or correct. To delete data stored on your device, uninstall the App.</p>
 
-    <h2>11. Changes to This Policy</h2>
+    <h2>12. Changes to This Policy</h2>
     <p>If we ever change this policy, we will update the "Last updated" date at the top and (for material changes) notify users in the next App update's release notes.</p>
 
-    <h2>12. Contact</h2>
+    <h2>13. Contact</h2>
     <ul>
       <li><strong>Email:</strong> <a href="mailto:lb0018575@gmail.com">lb0018575@gmail.com</a></li>
       <li><strong>GitHub Issues:</strong> <a href="https://github.com/mina0717/offline-translator-ios/issues">github.com/mina0717/offline-translator-ios/issues</a></li>
@@ -157,7 +160,7 @@
   <!-- Traditional Chinese -->
   <section id="lang-zh" class="lang">
     <h2>1. 摘要</h2>
-    <p>「離線翻譯」（以下稱「本 App」）是一款 <strong>完全在裝置端運作</strong> 的翻譯 App。我們 <strong>沒有</strong> 架任何伺服器、沒有任何分析追蹤、沒有任何廣告、也不會將資料分享給任何第三方。所有處理都在你的裝置上完成。</p>
+    <p>「離線翻譯」（以下稱「本 App」）是一款 <strong>完全在裝置端運作</strong> 的翻譯 App。我們 <strong>沒有</strong> 架任何伺服器、沒有任何分析追蹤、沒有任何廣告、也不會將資料分享給任何第三方。所有處理都在你的裝置上完成。唯一會離開裝置的，是你自己選擇寄給我們的意見回饋（見第 8 節）。</p>
 
     <h2>2. 我們「不會」蒐集的資料</h2>
     <ul>
@@ -168,15 +171,15 @@
       <li>分析、當機報告、遙測資料</li>
       <li>廣告資料</li>
     </ul>
-    <p><strong>我們沒有後端伺服器，</strong> 也不需要註冊或登入。</p>
+    <p><strong>我們沒有後端伺服器，</strong> 也不需要註冊或登入。（唯一的例外是你自己選擇寄給我們的意見回饋，見第 8 節。）</p>
 
     <h2>3. App 請求的權限</h2>
     <table>
       <thead><tr><th>權限</th><th>用途</th><th>資料流向</th></tr></thead>
       <tbody>
-        <tr><td><strong>麥克風</strong></td><td>錄音，用於語音翻譯</td><td>音訊由 Apple Speech 框架在裝置端處理，不會上傳。</td></tr>
-        <tr><td><strong>語音辨識</strong></td><td>將語音轉成文字</td><td>優先在裝置端處理。若 iOS 必須使用 Apple 雲端辨識，適用 Apple 隱私政策 — 我們看不到音訊或文字。</td></tr>
-        <tr><td><strong>相機</strong></td><td>拍照做圖片翻譯（OCR）</td><td>圖片由 Apple Vision 框架在裝置端處理，不會存檔也不會傳輸。</td></tr>
+        <tr><td><strong>麥克風</strong></td><td>錄音，用於語音翻譯、雙向對話與免持聆聽</td><td>音訊由 Apple Speech 框架在裝置端處理，不會上傳。</td></tr>
+        <tr><td><strong>語音辨識</strong></td><td>將語音轉成文字</td><td><strong>只在裝置端處理。</strong>若你的 iPhone 對某語言沒有裝置端語音辨識，App 會顯示說明，不會錄音，也不會把任何音訊傳到 Apple 伺服器。</td></tr>
+        <tr><td><strong>相機</strong></td><td>相機翻譯（即時疊字或單張拍照），使用 OCR 辨識文字</td><td>圖片由 Apple Vision 框架在裝置端處理，不會存檔也不會傳輸。</td></tr>
         <tr><td><strong>相簿</strong></td><td>讓你選一張圖片做 OCR</td><td>只讀取你明確選取的那一張，不會掃描整個相簿。</td></tr>
       </tbody>
     </table>
@@ -187,7 +190,7 @@
     <ul>
       <li><strong>生詞本</strong> — 你點「儲存」的單字或片語</li>
       <li><strong>翻譯記錄</strong> — 最近的翻譯</li>
-      <li><strong>語言偏好</strong> — 來源／目標／介面語言</li>
+      <li><strong>偏好設定</strong> — 來源／目標／介面語言，以及開啟 App 時進入的畫面</li>
     </ul>
     <p>這些資料不會離開你的裝置。若你有開啟 iCloud 裝置備份，會一併被備份（由 Apple 加密管理，與我們無關）。要刪除所有資料，請解除安裝本 App。</p>
 
@@ -200,19 +203,22 @@
     <h2>7. Siri 與 App Intents</h2>
     <p>使用 Siri 呼叫「翻譯文字」或「翻譯剪貼簿」捷徑時，文字由 Translation 框架在裝置端處理。Siri 本身適用 Apple 隱私政策。</p>
 
-    <h2>8. 第三方服務</h2>
-    <p><strong>一律沒有。</strong> 本 App 未整合任何第三方 SDK、分析工具、廣告網路、當機回報或追蹤工具。唯一使用的框架皆為 Apple 官方：Translation、Speech、Vision、AVFoundation、SwiftData、TipKit、App Intents。</p>
+    <h2>8. 意見回饋（選用）</h2>
+    <p>在「設定 → 意見回饋」會開啟 iOS 郵件撰寫畫面（使用你自己的電子郵件帳號），草稿已填好開發者的收件地址，內容包含你輸入的訊息、App 版本與建置號、裝置類型（例如「iPhone」）、iOS 版本，以及你自行選擇附上的截圖或影片。<strong>除非你在郵件 App 內按下「傳送」，否則不會寄出任何東西</strong>；本 App 沒有伺服器，也不會收到這封信。若你的裝置尚未設定郵件，App 可以改為把收件地址與草稿複製到剪貼簿。我們只會用你寄來的內容回覆你與改善 App。若你不使用這項功能，不會有任何資料離開你的裝置。</p>
 
-    <h2>9. 兒童隱私</h2>
+    <h2>9. 第三方服務</h2>
+    <p><strong>一律沒有。</strong> 本 App 未整合任何第三方 SDK、分析工具、廣告網路、當機回報或追蹤工具。唯一使用的框架皆為 Apple 官方：Translation、Speech、Vision、AVFoundation、SwiftData、TipKit、App Intents、PhotosUI、MessageUI。</p>
+
+    <h2>10. 兒童隱私</h2>
     <p>本 App 不以 13 歲以下兒童為目標對象，且不會蒐集任何人的資料。所有年齡皆可安全使用，App Store 年齡分級為 4+。</p>
 
-    <h2>10. 你的權利</h2>
+    <h2>11. 你的權利</h2>
     <p>由於我們不蒐集任何個人資料，傳統的資料主體請求（存取、刪除、匯出、更正）多半不適用。要刪除裝置上的資料，請解除安裝本 App。</p>
 
-    <h2>11. 政策變更</h2>
+    <h2>12. 政策變更</h2>
     <p>若本政策有任何變更，我們會更新本頁頂端的「最後更新」日期，重大變更會在下個 App 版本的更新說明中告知。</p>
 
-    <h2>12. 聯絡我們</h2>
+    <h2>13. 聯絡我們</h2>
     <ul>
       <li><strong>Email：</strong> <a href="mailto:lb0018575@gmail.com">lb0018575@gmail.com</a></li>
       <li><strong>GitHub Issues：</strong> <a href="https://github.com/mina0717/offline-translator-ios/issues">github.com/mina0717/offline-translator-ios/issues</a></li>

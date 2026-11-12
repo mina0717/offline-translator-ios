@@ -680,7 +680,7 @@
       <article class="feature">
         <div class="feature-icon fi-3">🎤</div>
         <h3>語音翻譯</h3>
-        <p>按住麥克風說話，自動辨識 → 翻譯 → 顯示譯文。鬆開即停。優先使用裝置端語音辨識。</p>
+        <p>按住麥克風說話，自動辨識 → 翻譯 → 顯示譯文。鬆開即停。語音辨識只在裝置端進行。</p>
         <span class="tag">即說即譯</span>
       </article>
 
@@ -823,7 +823,7 @@
     </div>
     <div class="tech-grid">
       <div class="tech-item"><strong>Translation Framework</strong><span>Apple iOS 18 系統翻譯，Neural Engine 加速</span></div>
-      <div class="tech-item"><strong>Speech Recognition</strong><span>優先使用 on-device 辨識；免持模式僅限裝置端</span></div>
+      <div class="tech-item"><strong>Speech Recognition</strong><span>只使用 on-device 辨識，不會改用雲端</span></div>
       <div class="tech-item"><strong>Vision Framework</strong><span>OCR 圖片文字辨識，完全本機</span></div>
       <div class="tech-item"><strong>AVSpeechSynthesizer</strong><span>譯文朗讀，使用者主動觸發</span></div>
       <div class="tech-item"><strong>SwiftUI + SwiftData</strong><span>原生 UI 與本機資料儲存</span></div>
@@ -844,7 +844,7 @@
     <div class="faq">
       <details open>
         <summary>真的完全不需要網路嗎？</summary>
-        <p>翻譯本身完全離線。唯一會用到網路的是「首次下載 Apple 語言包」（一次下載永久使用，由 iOS 系統處理）和「iOS 系統內建的更新檢查」。實際翻譯文字與辨識圖片文字都在你的 iPhone 上完成；語音辨識優先使用裝置端辨識（免持模式只用裝置端）。</p>
+        <p>翻譯本身完全離線。唯一會用到網路的是「首次下載 Apple 語言包」（一次下載永久使用，由 iOS 系統處理）和「iOS 系統內建的更新檢查」。實際翻譯文字與辨識圖片文字都在你的 iPhone 上完成；語音辨識也只在裝置端進行（若某語言沒有離線語音辨識，App 會直接提示，不會改用雲端）。</p>
       </details>
       <details>
         <summary>支援哪些語言？</summary>
