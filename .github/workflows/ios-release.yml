@@ -41,7 +41,7 @@ jobs:
       # 1. 取得程式碼
       # ────────────────────────────────────────────────────────────
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # ────────────────────────────────────────────────────────────
       # 2. 選 Xcode 版本（macos-latest runner 內建多版）
@@ -212,7 +212,7 @@ jobs:
       # ────────────────────────────────────────────────────────────
       - name: Upload IPA as artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: OfflineTranslator-IPA-${{ steps.versions.outputs.marketing_version }}-build${{ steps.versions.outputs.build_number }}
           path: ${{ runner.temp }}/export/*.ipa
@@ -220,7 +220,7 @@ jobs:
 
       - name: Upload xcarchive on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: OfflineTranslator-xcarchive-failed
           path: ${{ runner.temp }}/*.xcarchive
