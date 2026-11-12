@@ -216,7 +216,7 @@ jobs:
         with:
           name: OfflineTranslator-IPA-${{ steps.versions.outputs.marketing_version }}-build${{ steps.versions.outputs.build_number }}
           path: ${{ runner.temp }}/export/*.ipa
-          retention-days: 14
+          retention-days: 1
 
       - name: Upload xcarchive on failure
         if: failure()
