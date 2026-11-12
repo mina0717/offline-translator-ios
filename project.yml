@@ -45,7 +45,7 @@ targets:
         UIStatusBarStyle: UIStatusBarStyleDefault
         UIUserInterfaceStyle: Automatic
         NSMicrophoneUsageDescription: 需要麥克風才能將你的語音辨識為文字並進行翻譯。
-        NSSpeechRecognitionUsageDescription: 需要語音辨識功能以將錄裵的語音轉為文字。
+        NSSpeechRecognitionUsageDescription: 需要語音辨識功能以將錄製的語音轉為文字。
         NSCameraUsageDescription: 需要相機才能拍照或即時辨識畫面中的文字以進行翻譯。相機影像 100% 在本機處理，不會上傳。
         NSPhotoLibraryUsageDescription: 若你要從相簿挑選照片進行翻譯，需要存取相簿。
     settings:

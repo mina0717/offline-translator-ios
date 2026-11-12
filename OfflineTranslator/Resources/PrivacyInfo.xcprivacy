@@ -32,9 +32,39 @@
     <key>NSPrivacyTrackingDomains</key>
     <array/>
 
-    <!-- Required Reason API 使用聲明：目前沒直接使用任何 required reason API。
-         如被 App Store review 退件再對應補上。 -->
+    <!-- Required Reason API 使用聲明（2026-11-12 資安檢查補齊，依程式實際用到的 API）：
+         • UserDefaults（@AppStorage / UserDefaults.standard）：CA92.1 = 僅供 App 自己讀寫設定
+         • 磁碟空間（volumeAvailableCapacityForImportantUsage，LanguagePackBootstrap）：
+           85F4.1 = 向使用者顯示可用空間；E174.1 = 下載語言包前檢查空間是否足夠
+         • 系統開機時間（ProcessInfo.systemUptime，FrameThrottler）：35F9.1 = 只用來量測 App 內事件間隔
+         新增用到其他 required reason API 時，記得回來補。 -->
     <key>NSPrivacyAccessedAPITypes</key>
-    <array/>
+    <array>
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>CA92.1</string>
+            </array>
+        </dict>
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryDiskSpace</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>85F4.1</string>
+                <string>E174.1</string>
+            </array>
+        </dict>
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategorySystemBootTime</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>35F9.1</string>
+            </array>
+        </dict>
+    </array>
 </dict>
 </plist>
